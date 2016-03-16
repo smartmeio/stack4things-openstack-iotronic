@@ -45,7 +45,7 @@ import datetime
 import eventlet
 from eventlet import greenpool
 import inspect
-import tempfile
+# import tempfile
 
 from iotronic.conductor import utils
 from iotronic.db import api as dbapi
@@ -54,7 +54,7 @@ from iotronic.common import dhcp_factory
 from iotronic.common import exception
 from iotronic.common.glance_service import service_utils as glance_utils
 from iotronic.common import hash_ring as hash
-from iotronic.common import images
+# from iotronic.common import images
 
 from iotronic.common.i18n import _
 from iotronic.common.i18n import _LC
@@ -65,7 +65,7 @@ from iotronic.common.i18n import _LW
 
 
 from iotronic.common import states
-from iotronic.common import swift
+# from iotronic.common import swift
 from iotronic.conductor import task_manager
 from iotronic import objects
 
@@ -293,6 +293,7 @@ def _store_configdrive(node, configdrive):
              config drive to Swift.
 
     """
+    """
     if CONF.conductor.configdrive_use_swift:
         # NOTE(lucasagomes): No reason to use a different timeout than
         # the one used for deploying the node
@@ -311,7 +312,7 @@ def _store_configdrive(node, configdrive):
                                     object_headers=object_headers)
             configdrive = swift_api.get_temp_url(container, object_name,
                                                  timeout)
-
+    """
     i_info = node.instance_info
     i_info['configdrive'] = configdrive
     node.instance_info = i_info
@@ -1121,16 +1122,18 @@ class ConductorManager(periodic_task.PeriodicTasks):
             else:
                 event = 'deploy'
 
-            driver_internal_info = node.driver_internal_info
+            # driver_internal_info = node.driver_internal_info
             # Infer the image type to make sure the deploy driver
             # validates only the necessary variables for different
             # image types.
             # NOTE(sirushtim): The iwdi variable can be None. It's up to
             # the deploy driver to validate this.
+            """
             iwdi = images.is_whole_disk_image(context, node.instance_info)
             driver_internal_info['is_whole_disk_image'] = iwdi
             node.driver_internal_info = driver_internal_info
             node.save()
+            """
 
             try:
                 task.driver.power.validate(task)
@@ -1640,9 +1643,11 @@ class ConductorManager(periodic_task.PeriodicTasks):
             # the meantime, we don't know if the is_whole_disk_image value will
             # change or not. It isn't saved to the DB, but only used with this
             # node instance for the current validations.
+            """
             iwdi = images.is_whole_disk_image(context,
                                               task.node.instance_info)
             task.node.driver_internal_info['is_whole_disk_image'] = iwdi
+            """
             for iface_name in (task.driver.core_interfaces +
                                task.driver.standard_interfaces):
                 iface = getattr(task.driver, iface_name, None)
