@@ -253,6 +253,10 @@ class NodeNotFound(NotFound):
     message = _("Node %(node)s could not be found.")
 
 
+class NodeNotConnected(Invalid):
+    message = _("Node %(node)s is not connected.")
+
+
 class NodeAssociated(InvalidState):
     message = _("Node %(node)s is associated with instance %(instance)s.")
 

@@ -67,8 +67,10 @@ from iotronic.common.i18n import _LW
 from iotronic.common import states
 # from iotronic.common import swift
 from iotronic.conductor import task_manager
-from iotronic import objects
+from iotronic.wamp.rpcwamp import RPC_Wamp
+from iotronic.wamp.wampresponse import WampResponse
 
+from iotronic import objects
 from iotronic.openstack.common import periodic_task
 
 
@@ -623,6 +625,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         self.host = host
         self.topic = topic
         self.drivers = ['fake']
+        self.wamp = RPC_Wamp()
         # self.power_state_sync_count = collections.defaultdict(int)
         # self.notifier = rpc.get_notifier()
     '''
@@ -709,9 +712,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
             with excutils.save_and_reraise_exception():
                 LOG.critical(_LC('Failed to start keepalive'))
                 self.del_host()
-
-        # from iotronic.wamp.rpcwampserver import RPC_Wamp_Server
-        # RPC_Wamp_Server()
 
     def _collect_periodic_tasks(self, obj):
         for n, method in inspect.getmembers(obj, inspect.ismethod):
@@ -1671,7 +1671,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         return ret_dict
 
     @messaging.expected_exceptions(exception.NodeLocked,
-                                   exception.NodeAssociated,
+                                   exception.NodeNotConnected,
                                    exception.InvalidState)
     def destroy_node(self, context, node_id):
         """Delete a node.
@@ -1679,8 +1679,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :param context: request context.
         :param node_id: node id or uuid.
         :raises: NodeLocked if node is locked by another conductor.
-        :raises: NodeAssociated if the node contains an instance
-            associated with it.
+        :raises: NodeNotConnected if the node is not connected
         :raises: InvalidState if the node is in the wrong provision
             state to perform deletion.
 
@@ -1688,46 +1687,17 @@ class ConductorManager(periodic_task.PeriodicTasks):
 
         with task_manager.acquire(context, node_id) as task:
             node = task.node
-            node.destroy()
-            LOG.info(_LI('Successfully deleted node %(node)s.'),
-                     {'node': node.uuid})
-            # if node.instance_uuid is not None:
-            #    raise exception.NodeAssociated(node=node.uuid,
-            #                                   instance=node.instance_uuid)
-
-            # TODO(lucasagomes): We should add ENROLLED once it's part of our
-            #                    state machine
-            # NOTE(lucasagomes): For the *FAIL states we users should
-            # move it to a safe state prior to deletion. This is because we
-            # should try to avoid deleting a node in a dirty/whacky state,
-            # e.g: A node in DEPLOYFAIL, if deleted without passing through
-            # tear down/cleaning may leave data from the previous tenant
-            # in the disk. So nodes in *FAIL states should first be moved to:
-            # CLEANFAIL -> MANAGEABLE
-            # INSPECTIONFAIL -> MANAGEABLE
-            # DEPLOYFAIL -> DELETING
-            # ZAPFAIL -> MANAGEABLE (in the future)
-            '''
-            valid_states = (states.AVAILABLE, states.NOSTATE,
-                            states.MANAGEABLE)
-            if node.provision_state not in valid_states:
-                msg = (_('Can not delete node "%(node)s" while it is in '
-                         'provision state "%(state)s". Valid provision states '
-                         'to perform deletion are: "%(valid_states)s"') %
-                       {'node': node.uuid, 'state': node.provision_state,
-                        'valid_states': valid_states})
-                raise exception.InvalidState(msg)
-            if node.console_enabled:
-                try:
-                    task.driver.console.stop_console(task)
-                except Exception as err:
-                    LOG.error(_LE('Failed to stop console while deleting '
-                                  'the node %(node)s: %(err)s.'),
-                              {'node': node.uuid, 'err': err})
-            node.destroy()
-            LOG.info(_LI('Successfully deleted node %(node)s.'),
-                     {'node': node.uuid})
-            '''
+            r = WampResponse()
+            r.clearConfig()
+            response = self.wamp.rpc_call(
+                'stack4things.' + node.uuid + '.configure',
+                r.getResponse())
+            if response['result'] == 0:
+                node.destroy()
+                LOG.info(_LI('Successfully deleted node %(node)s.'),
+                         {'node': node.uuid})
+            else:
+                raise exception.NodeNotConnected(node=node.uuid)
 
     @messaging.expected_exceptions(exception.NodeLocked,
                                    exception.NodeNotFound)
