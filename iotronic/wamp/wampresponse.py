@@ -50,6 +50,10 @@ class WampResponse(object):
             "port": "",
             "realm": ""
         }},
+            "log": {
+            "logfile": "s4t-lightning-rod.log",
+            "loglevel": "info"
+        },
             "node": {
             "token": ""}
         })
