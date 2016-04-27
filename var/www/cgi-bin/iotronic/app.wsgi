@@ -15,9 +15,9 @@
 
 from iotronic.api import app
 from iotronic.common import service
-from oslo import i18n
+import oslo_i18n
 
-i18n.install('iotronic')
+oslo_i18n.install('iotronic')
 service.prepare_service([])
 
 application = app.VersionSelectorApplication()
