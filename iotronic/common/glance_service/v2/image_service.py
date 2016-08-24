@@ -37,6 +37,7 @@ glance_opts = [
                     'downloads. Required for temporary URLs.',
                secret=True),
     cfg.IntOpt('swift_temp_url_duration',
+               min=0,
                default=1200,
                help='The length of time in seconds that the temporary URL '
                     'will be valid for. Defaults to 20 minutes. If some '
@@ -173,9 +174,6 @@ class GlanceImageService(base_image_service.BaseImageService,
             raise exc.MissingParameterValue(_(
                 'Swift temporary URLs require a Swift account string. '
                 'You must provide "swift_account" as a config option.'))
-        if CONF.glance.swift_temp_url_duration < 0:
-            raise exc.InvalidParameterValue(_(
-                '"swift_temp_url_duration" must be a positive integer.'))
         seed_num_chars = CONF.glance.swift_store_multiple_containers_seed
         if (seed_num_chars is None or seed_num_chars < 0
                 or seed_num_chars > 32):
