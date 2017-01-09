@@ -28,8 +28,6 @@ from iotronic.common.i18n import _LI
 from iotronic.common.i18n import _LW
 
 from iotronic.conductor import task_manager
-from iotronic.wamp.rpcwamp import RPC_Wamp
-from iotronic.wamp.wampresponse import WampResponse
 
 from iotronic.openstack.common import periodic_task
 
@@ -123,7 +121,6 @@ class ConductorManager(periodic_task.PeriodicTasks):
             host = CONF.host
         self.host = host
         self.topic = topic
-        self.wamp = RPC_Wamp()
 
     def init_host(self):
         self.dbapi = dbapi.get_instance()
@@ -246,6 +243,7 @@ class ConductorManager(periodic_task.PeriodicTasks):
         :raises: NodeNotConnected if the node is not connected.
 
         """
+        """ REMOVE ASAP
 
         with task_manager.acquire(context, node_id) as task:
             node = task.node
@@ -260,3 +258,5 @@ class ConductorManager(periodic_task.PeriodicTasks):
                          {'node': node.uuid})
             else:
                 raise exception.NodeNotConnected(node=node.uuid)
+        """
+        pass
