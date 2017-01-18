@@ -18,7 +18,6 @@
 """Generic Node base class for all workers that run on hosts."""
 
 import errno
-import logging
 import os
 import random
 import signal
@@ -36,6 +35,7 @@ except ImportError:
 import eventlet
 from eventlet import event
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from iotronic.openstack.common import eventlet_backdoor
 from iotronic.openstack.common._i18n import _LE, _LI, _LW
