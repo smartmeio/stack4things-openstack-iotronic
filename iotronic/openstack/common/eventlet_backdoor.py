@@ -28,7 +28,7 @@ import traceback
 import eventlet.backdoor
 import greenlet
 from oslo_config import cfg
-from oslo_logging import log as logging
+from oslo_log import log as logging
 
 from iotronic.openstack.common._i18n import _LI
 
