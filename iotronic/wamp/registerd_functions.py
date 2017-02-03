@@ -13,17 +13,52 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from iotronic.common import rpc
+from iotronic.conductor import rpcapi
+from iotronic import objects
+from oslo_config import cfg
 from oslo_log import log
+
+
 LOG = log.getLogger(__name__)
 
+CONF = cfg.CONF
+CONF(project='iotronic')
 
-def register_board():
-    return 'hello!\n'
+rpc.init(CONF)
+
+topic = 'iotronic.conductor_manager'
+c = rpcapi.ConductorAPI(topic)
+
+
+class cont(object):
+    def to_dict(self):
+        return {}
+
+
+ctxt = cont()
+
+
+def echo(data):
+    LOG.info("ECHO: %s" % data)
+    return data
 
 
 def board_on_leave(session_id):
     LOG.debug('A node with %s disconnectd', session_id)
+    try:
+        old_session = objects.SessionWP({}).get_by_session_id({}, session_id)
+        old_session.valid = False
+        old_session.save()
+        LOG.debug('Session %s deleted', session_id)
+    except Exception:
+        LOG.debug('session %s not found', session_id)
+
+
+def registration(data):
+    token = data[0]
+    session = data[1]
+    return c.registration(ctxt, token, session)
 
 
 def board_on_join(session_id):

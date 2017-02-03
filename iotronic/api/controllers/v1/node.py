@@ -100,7 +100,6 @@ class NodeCollection(collection.Collection):
 
 
 class NodesController(rest.RestController):
-
     invalid_sort_key_list = ['properties']
 
     def _get_nodes_collection(self, marker, limit, sort_key, sort_dir,
@@ -188,11 +187,11 @@ class NodesController(rest.RestController):
 
         new_Node = objects.Node(pecan.request.context,
                                 **Node.as_dict())
-        new_Node.create()
 
         new_Location = objects.Location(pecan.request.context,
                                         **Node.location[0].as_dict())
-        new_Location.node_id = new_Node.id
-        new_Location.create()
+
+        new_Node = pecan.request.rpcapi.create_node(pecan.request.context,
+                                                    new_Node, new_Location)
 
         return Node.convert_with_locates(new_Node)

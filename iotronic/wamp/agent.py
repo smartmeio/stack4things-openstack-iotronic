@@ -18,12 +18,11 @@ from autobahn.twisted import websocket
 from autobahn.wamp import types
 from oslo_config import cfg
 from oslo_log import log as logging
+import oslo_messaging
+import threading
 from threading import Thread
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.internet import reactor
-
-import oslo_messaging
-import threading
 
 
 LOG = logging.getLogger(__name__)
@@ -42,10 +41,10 @@ CONF.register_opts(wamp_opts, 'wamp')
 
 shared_result = {}
 wamp_session_caller = None
+AGENT_UUID = None
 
 
 def wamp_request(e, kwarg, session):
-
     id = threading.current_thread().ident
     shared_result[id] = {}
     shared_result[id]['result'] = None
@@ -71,10 +70,9 @@ def wamp_request(e, kwarg, session):
 
 # OSLO ENDPOINT
 class WampEndpoint(object):
-
     def __init__(self, wamp_session, agent_uuid):
         self.wamp_session = wamp_session
-        setattr(self, agent_uuid+'.s4t_invoke_wamp', self.s4t_invoke_wamp)
+        setattr(self, agent_uuid + '.s4t_invoke_wamp', self.s4t_invoke_wamp)
 
     def s4t_invoke_wamp(self, ctx, **kwarg):
         e = threading.Event()
@@ -93,9 +91,8 @@ class WampEndpoint(object):
 
 
 class WampFrontend(wamp.ApplicationSession):
-
     def onJoin(self, details):
-        global wamp_session_caller
+        global wamp_session_caller, AGENT_UUID
         wamp_session_caller = self
         import iotronic.wamp.registerd_functions as fun
 
@@ -103,7 +100,8 @@ class WampFrontend(wamp.ApplicationSession):
         self.subscribe(fun.board_on_join, 'wamp.session.on_join')
 
         try:
-            self.register(fun.register_board, u'register_board')
+            self.register(fun.registration, u'stack4things.register')
+            self.register(fun.echo, AGENT_UUID + u'.stack4things.echo')
             LOG.info("procedure registered")
         except Exception as e:
             LOG.error("could not register procedure: {0}".format(e))
@@ -114,10 +112,8 @@ class WampFrontend(wamp.ApplicationSession):
         LOG.info("disconnected")
 
 
-class WampClientFactory(
-        websocket.WampWebSocketClientFactory,
-        ReconnectingClientFactory):
-
+class WampClientFactory(websocket.WampWebSocketClientFactory,
+                        ReconnectingClientFactory):
     maxDelay = 30
 
     def clientConnectionFailed(self, connector, reason):
@@ -134,7 +130,6 @@ class WampClientFactory(
 
 
 class RPCServer(Thread):
-
     def __init__(self, agent_uuid):
 
         # AMQP CONFIG
@@ -144,7 +139,7 @@ class RPCServer(Thread):
 
         Thread.__init__(self)
         transport = oslo_messaging.get_transport(CONF)
-        target = oslo_messaging.Target(topic=agent_uuid+'.s4t_invoke_wamp',
+        target = oslo_messaging.Target(topic=agent_uuid + '.s4t_invoke_wamp',
                                        server='server1')
 
         self.server = oslo_messaging.get_rpc_server(transport,
@@ -165,7 +160,6 @@ class RPCServer(Thread):
 
 
 class WampManager(object):
-
     def __init__(self):
         component_config = types.ComponentConfig(
             realm=unicode(CONF.wamp.wamp_realm))
@@ -190,13 +184,14 @@ class WampManager(object):
 
 
 class WampAgent(object):
-
     def __init__(self):
         logging.register_options(CONF)
         CONF(project='iotronic')
         logging.setup(CONF, "iotronic-wamp-agent")
 
         agent_uuid = 'agent'
+        global AGENT_UUID
+        AGENT_UUID = agent_uuid
 
         r = RPCServer(agent_uuid)
         w = WampManager()

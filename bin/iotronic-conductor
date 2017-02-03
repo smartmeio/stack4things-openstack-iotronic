@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# Copyright 2011 OpenStack LLC.
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -19,24 +16,14 @@
 Iotronic Conductor
 """
 
-import sys
-
 from oslo_config import cfg
 
-from iotronic.common import service as iotronic_service
-from iotronic.openstack.common import service
-
+from iotronic.conductor.manager import ConductorManager
 
 
 CONF = cfg.CONF
 if __name__ == '__main__':
-	
-	iotronic_service.prepare_service(sys.argv)
-	mgr = iotronic_service.RPCService(CONF.host,
-                                    'iotronic.conductor.manager',
-                                    'ConductorManager')
-	
-	launcher = service.launch(mgr)
-	launcher.wait()
+
+	cond=ConductorManager('iotronic')
 
 

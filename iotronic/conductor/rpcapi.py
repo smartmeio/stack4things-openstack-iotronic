@@ -1,8 +1,5 @@
 # coding=utf-8
 
-# Copyright 2013 Hewlett-Packard Development Company, L.P.
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -17,16 +14,13 @@
 """
 Client side of the conductor RPC API.
 """
-
-import oslo_messaging as messaging
-
-from iotronic.common import hash_ring
 from iotronic.common import rpc
 from iotronic.conductor import manager
-from iotronic.objects import base as objects_base
-
+from iotronic.objects import base
 from oslo_log import log as logging
-LOG = logging.getLogger('object')
+import oslo_messaging
+
+LOG = logging.getLogger(__name__)
 
 
 class ConductorAPI(object):
@@ -36,7 +30,6 @@ class ConductorAPI(object):
     |    1.0 - Initial version.
     """
 
-    # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     RPC_API_VERSION = '1.0'
 
     def __init__(self, topic=None):
@@ -45,14 +38,47 @@ class ConductorAPI(object):
         if self.topic is None:
             self.topic = manager.MANAGER_TOPIC
 
-        target = messaging.Target(topic=self.topic,
-                                  version='1.0')
-        serializer = objects_base.IotronicObjectSerializer()
+        target = oslo_messaging.Target(topic=self.topic,
+                                       version='1.0')
+        serializer = base.IotronicObjectSerializer()
         self.client = rpc.get_client(target,
                                      version_cap=self.RPC_API_VERSION,
                                      serializer=serializer)
-        # NOTE(deva): this is going to be buggy
-        self.ring_manager = hash_ring.HashRingManager()
+
+    def echo(self, context, data, topic=None):
+        """Test
+
+        :param context: request context.
+        :param data: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'echo', data=data)
+
+    def registration(self, context, token, session_num, topic=None):
+        """Registration of a node.
+
+        :param context: request context.
+        :param token: token used for the first registration
+        :param session_num: wamp session number
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'registration',
+                          token=token, session_num=session_num)
+
+    def create_node(self, context, node_obj, location_obj, topic=None):
+        """Add a node on the cloud
+
+        :param context: request context.
+        :param node_obj: a changed (but not saved) node object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: created node object
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'create_node',
+                          node_obj=node_obj, location_obj=location_obj)
 
     def update_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor update the node's information.
@@ -72,7 +98,7 @@ class ConductorAPI(object):
         :returns: updated node object, including all fields.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.1')
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'update_node', node_obj=node_obj)
 
     def destroy_node(self, context, node_id, topic=None):

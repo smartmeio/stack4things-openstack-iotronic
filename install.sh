@@ -8,7 +8,7 @@ function build_install {
     rm -rf dist
 }
 case "$1" in
-    iotronic)
+    conductor)
         build_install
         systemctl restart httpd
         cp bin/iotronic-conductor /usr/bin/
@@ -27,6 +27,6 @@ case "$1" in
         ;;
         
     *)
-        echo $"Usage: $0 {iotronic|wamp-agent|all}"
+        echo $"Usage: $0 {conductor|wamp-agent|all}"
         exit 1
 esac
