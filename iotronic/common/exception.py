@@ -29,7 +29,6 @@ import six
 from iotronic.common.i18n import _
 from iotronic.common.i18n import _LE
 
-
 LOG = logging.getLogger(__name__)
 
 exc_log_opts = [
@@ -288,6 +287,14 @@ class ConductorNotFound(NotFound):
 
 class ConductorAlreadyRegistered(IotronicException):
     message = _("Conductor %(conductor)s already registered.")
+
+
+class WampAgentNotFound(NotFound):
+    message = _("WampAgent %(wampagent)s could not be found.")
+
+
+class WampAgentAlreadyRegistered(IotronicException):
+    message = _("WampAgent %(wampagent)s already registered.")
 
 
 class PowerStateFailure(InvalidState):

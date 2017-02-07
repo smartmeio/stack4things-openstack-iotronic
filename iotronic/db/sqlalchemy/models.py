@@ -33,7 +33,6 @@ from sqlalchemy import String
 from sqlalchemy.types import TypeDecorator, TEXT
 from iotronic.common import paths
 
-
 sql_opts = [
     cfg.StrOpt('mysql_engine',
                default='InnoDB',
@@ -41,8 +40,7 @@ sql_opts = [
 ]
 
 _DEFAULT_SQL_CONNECTION = 'sqlite:///' + \
-    paths.state_path_def('iotronic.sqlite')
-
+                          paths.state_path_def('iotronic.sqlite')
 
 cfg.CONF.register_opts(sql_opts, 'database')
 db_options.set_defaults(cfg.CONF, _DEFAULT_SQL_CONNECTION, 'iotronic.sqlite')
@@ -92,7 +90,6 @@ class JSONEncodedList(JsonEncodedType):
 
 class IotronicBase(models.TimestampMixin,
                    models.ModelBase):
-
     metadata = None
 
     def as_dict(self):
@@ -109,6 +106,7 @@ class IotronicBase(models.TimestampMixin,
 
         super(IotronicBase, self).save(session)
 
+
 Base = declarative_base(cls=IotronicBase)
 
 
@@ -118,6 +116,19 @@ class Conductor(Base):
     __tablename__ = 'conductors'
     __table_args__ = (
         schema.UniqueConstraint('hostname', name='uniq_conductors0hostname'),
+        table_args()
+    )
+    id = Column(Integer, primary_key=True)
+    hostname = Column(String(255), nullable=False)
+    online = Column(Boolean, default=True)
+
+
+class WampAgent(Base):
+    """Represents a wampagent service entry."""
+
+    __tablename__ = 'wampagents'
+    __table_args__ = (
+        schema.UniqueConstraint('hostname', name='uniq_wampagentss0hostname'),
         table_args()
     )
     id = Column(Integer, primary_key=True)

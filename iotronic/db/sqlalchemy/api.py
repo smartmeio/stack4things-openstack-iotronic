@@ -39,7 +39,6 @@ CONF.import_opt('heartbeat_timeout',
 
 LOG = log.getLogger(__name__)
 
-
 _FACADE = None
 
 
@@ -268,11 +267,11 @@ class Connection(api.Connection):
                     values['inspection_started_at'] = timeutils.utcnow()
                     values['inspection_finished_at'] = None
                 elif (ref.provision_state == states.INSPECTING and
-                      values['provision_state'] == states.MANAGEABLE):
+                        values['provision_state'] == states.MANAGEABLE):
                     values['inspection_finished_at'] = timeutils.utcnow()
                     values['inspection_started_at'] = None
                 elif (ref.provision_state == states.INSPECTING and
-                      values['provision_state'] == states.INSPECTFAIL):
+                        values['provision_state'] == states.INSPECTFAIL):
                     values['inspection_started_at'] = None
 
             ref.update(values)
@@ -397,3 +396,52 @@ class Connection(api.Connection):
             return query.one()
         except NoResultFound:
             return None
+
+    def register_wampagent(self, values, update_existing=False):
+        session = get_session()
+        with session.begin():
+            query = (model_query(models.WampAgent, session=session)
+                     .filter_by(hostname=values['hostname']))
+            try:
+                ref = query.one()
+                if ref.online is True and not update_existing:
+                    raise exception.WampAgentAlreadyRegistered(
+                        wampagent=values['hostname'])
+            except NoResultFound:
+                ref = models.WampAgent()
+            ref.update(values)
+            # always set online and updated_at fields when registering
+            # a wampagent, especially when updating an existing one
+            ref.update({'updated_at': timeutils.utcnow(),
+                        'online': True})
+            ref.save(session)
+        return ref
+
+    def get_wampagent(self, hostname):
+        try:
+            return (model_query(models.WampAgent)
+                    .filter_by(hostname=hostname, online=True)
+                    .one())
+        except NoResultFound:
+            raise exception.WampAgentNotFound(wampagent=hostname)
+
+    def unregister_wampagent(self, hostname):
+        session = get_session()
+        with session.begin():
+            query = (model_query(models.WampAgent, session=session)
+                     .filter_by(hostname=hostname, online=True))
+            count = query.update({'online': False})
+            if count == 0:
+                raise exception.WampAgentNotFound(wampagent=hostname)
+
+    def touch_wampagent(self, hostname):
+        session = get_session()
+        with session.begin():
+            query = (model_query(models.WampAgent, session=session)
+                     .filter_by(hostname=hostname))
+            # since we're not changing any other field, manually set updated_at
+            # and since we're heartbeating, make sure that online=True
+            count = query.update({'updated_at': timeutils.utcnow(),
+                                  'online': True})
+            if count == 0:
+                raise exception.WampAgentNotFound(wampagent=hostname)
