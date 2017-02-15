@@ -25,14 +25,13 @@ LOG = logging.getLogger(__name__)
 
 serializer = objects_base.IotronicObjectSerializer()
 
-a = ['wagent2', 'wagent1']
 
-
-def get_best_agent():
-    agent = a.pop(0)
-    LOG.debug('Selected agent: %s', agent)
-    a.append(agent)
-    return agent
+def get_best_agent(ctx):
+    agents = objects.WampAgent.list(ctx, filters=[{'online': True}])
+    agent = agents.pop(0)
+    LOG.debug('Selected agent: %s', agent.hostname)
+    agents.append(agent)
+    return agent.hostname
 
 
 class ConductorEndpoint(object):
@@ -96,7 +95,7 @@ class ConductorEndpoint(object):
         session.create()
         session.save()
 
-        node.agent = get_best_agent()
+        node.agent = get_best_agent(ctx)
         agent = objects.WampAgent.get_by_hostname(ctx, node.agent)
 
         prov = Provisioner(node)

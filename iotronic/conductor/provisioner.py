@@ -33,9 +33,6 @@ class Provisioner(object):
             self.config['iotronic']['node']['updated_at'] = \
                 node._attr_to_primitive('updated_at')
 
-            # workaround until node properties are not changed
-            self.config['iotronic']['node']['type'] = 'yun'
-
             try:
                 del self.config['iotronic']['node']['config']
             except Exception:

@@ -137,6 +137,18 @@ class Connection(api.Connection):
 
         return query
 
+    def _add_wampagents_filters(self, query, filters):
+        if filters is None:
+            filters = []
+
+        if 'online' in filters:
+            if filters['online']:
+                query = query.filter(models.WampAgent.online is False)
+            else:
+                query = query.filter(models.WampAgent.online is True)
+
+        return query
+
     def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
                           marker=None, sort_key=None, sort_dir=None):
         # list-ify columns default values because it is bad form
@@ -440,3 +452,10 @@ class Connection(api.Connection):
                                   'online': True})
             if count == 0:
                 raise exception.WampAgentNotFound(wampagent=hostname)
+
+    def get_wampagent_list(self, filters=None, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        query = model_query(models.WampAgent)
+        query = self._add_wampagents_filters(query, filters)
+        return _paginate_query(models.WampAgent, limit, marker,
+                               sort_key, sort_dir, query)

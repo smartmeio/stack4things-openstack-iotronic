@@ -90,3 +90,25 @@ class WampAgent(base.IotronicObject):
     def touch(self, context):
         """Touch this wampagent's DB record, marking it as up-to-date."""
         self.dbapi.touch_wampagent(self.hostname)
+
+    @base.remotable_classmethod
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None, filters=None):
+        """Return a list of WampAgent objects.
+
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param filters: Filters to apply.
+        :returns: a list of :class:`WampAgent` object.
+
+        """
+        db_wampagents = cls.dbapi.get_wampagent_list(filters=filters,
+                                                     limit=limit,
+                                                     marker=marker,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
+        return [WampAgent._from_db_object(cls(context),
+                                          obj) for obj in db_wampagents]

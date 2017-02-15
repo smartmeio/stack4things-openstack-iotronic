@@ -52,7 +52,7 @@ class Node(base.APIBase):
             pass
 
         if not expand:
-            except_list = ['name', 'code', 'status', 'uuid', 'session']
+            except_list = ['name', 'code', 'status', 'uuid', 'session', 'type']
             node.unset_fields_except(except_list)
             return node
 
@@ -171,17 +171,17 @@ class NodesController(rest.RestController):
         """
         if not Node.name:
             raise exception.MissingParameterValue(
-                _("Name is not specified."))
+                ("Name is not specified."))
         if not Node.code:
             raise exception.MissingParameterValue(
-                _("Code is not specified."))
+                ("Code is not specified."))
         if not Node.location:
             raise exception.MissingParameterValue(
-                _("Location is not specified."))
+                ("Location is not specified."))
 
         if Node.name:
             if not api_utils.is_valid_node_name(Node.name):
-                msg = _("Cannot create node with invalid name %(name)s")
+                msg = ("Cannot create node with invalid name %(name)s")
                 raise wsme.exc.ClientSideError(msg % {'name': Node.name},
                                                status_code=400)
 
