@@ -293,6 +293,10 @@ class WampAgentNotFound(NotFound):
     message = _("WampAgent %(wampagent)s could not be found.")
 
 
+class WampRegistrationAgentNotFound(NotFound):
+    message = _("No Wamp Registration Agent could not be found.")
+
+
 class WampAgentAlreadyRegistered(IotronicException):
     message = _("WampAgent %(wampagent)s already registered.")
 

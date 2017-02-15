@@ -45,7 +45,9 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`wampagents` (
   `updated_at` DATETIME NULL DEFAULT NULL,
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `hostname` VARCHAR(255) NOT NULL,
+  `wsurl` VARCHAR(255) NOT NULL,
   `online` TINYINT(1) NULL DEFAULT NULL,
+  `ragent` TINYINT(1) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uniq_wampagents0hostname` (`hostname` ASC))
 ENGINE = InnoDB
@@ -66,9 +68,11 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`nodes` (
   `code` VARCHAR(25) NOT NULL,
   `status` VARCHAR(15) NULL DEFAULT NULL,
   `name` VARCHAR(255) NULL DEFAULT NULL,
-  `device` VARCHAR(255) NOT NULL,
+  `type` VARCHAR(255) NOT NULL,
+  `agent` VARCHAR(255) NULL DEFAULT NULL,
   `session` VARCHAR(255) NULL DEFAULT NULL,
   `mobile` TINYINT(1) NOT NULL DEFAULT '0',
+  `config` TEXT NULL DEFAULT NULL,
   `extra` TEXT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid` ASC),

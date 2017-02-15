@@ -34,9 +34,11 @@ class Node(base.IotronicObject):
         'code': obj_utils.str_or_none,
         'status': obj_utils.str_or_none,
         'name': obj_utils.str_or_none,
-        'device': obj_utils.str_or_none,
+        'type': obj_utils.str_or_none,
+        'agent': obj_utils.str_or_none,
         'session': obj_utils.str_or_none,
         'mobile': bool,
+        'config': obj_utils.dict_or_none,
         'extra': obj_utils.dict_or_none,
     }
 
@@ -223,6 +225,7 @@ class Node(base.IotronicObject):
         """
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:
-            if (hasattr(self, base.get_attrname(field)) and
+            if (hasattr(
+                    self, base.get_attrname(field)) and
                     self[field] != current[field]):
                 self[field] = current[field]

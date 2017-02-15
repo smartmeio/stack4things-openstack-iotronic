@@ -55,17 +55,29 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'echo', data=data)
 
-    def registration(self, context, token, session_num, topic=None):
+    def registration(self, context, code, session_num, topic=None):
         """Registration of a node.
 
         :param context: request context.
-        :param token: token used for the first registration
+        :param code: token used for the first registration
         :param session_num: wamp session number
         :param topic: RPC topic. Defaults to self.topic.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'registration',
-                          token=token, session_num=session_num)
+                          code=code, session_num=session_num)
+
+    def registration_uuid(self, context, uuid, session_num, topic=None):
+        """Registration of a node.
+
+        :param context: request context.
+        :param uuid: uuid node
+        :param session_num: wamp session number
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'registration_uuid',
+                          uuid=uuid, session_num=session_num)
 
     def create_node(self, context, node_obj, location_obj, topic=None):
         """Add a node on the cloud

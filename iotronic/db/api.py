@@ -251,6 +251,14 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_registration_wampagent(self):
+        """Retrieve the registration wampagent record from the database.
+
+        :returns: A wampagent.
+        :raises: WampAgentNotFound
+        """
+
+    @abc.abstractmethod
     def unregister_wampagent(self, hostname):
         """Remove this wampagent from the service registry immediately.
 

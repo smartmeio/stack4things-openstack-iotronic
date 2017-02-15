@@ -113,6 +113,7 @@ class SessionWP(base.IotronicObject):
         :returns: a list of :class:`SessionWP` object.
 
         """
+
         db_sessions = cls.dbapi.get_session_list(limit=limit,
                                                  marker=marker,
                                                  sort_key=sort_key,
@@ -207,6 +208,7 @@ class SessionWP(base.IotronicObject):
         """
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         for field in self.fields:
-            if (hasattr(self, base.get_attrname(field)) and
+            if (hasattr(
+                    self, base.get_attrname(field)) and
                     self[field] != current[field]):
                 self[field] = current[field]

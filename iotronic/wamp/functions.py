@@ -19,7 +19,6 @@ from iotronic import objects
 from oslo_config import cfg
 from oslo_log import log
 
-
 LOG = log.getLogger(__name__)
 
 CONF = cfg.CONF
@@ -44,7 +43,7 @@ def echo(data):
     return data
 
 
-def board_on_leave(session_id):
+def node_on_leave(session_id):
     LOG.debug('A node with %s disconnectd', session_id)
     try:
         old_session = objects.SessionWP({}).get_by_session_id({}, session_id)
@@ -55,11 +54,13 @@ def board_on_leave(session_id):
         LOG.debug('session %s not found', session_id)
 
 
-def registration(data):
-    token = data[0]
-    session = data[1]
-    return c.registration(ctxt, token, session)
+def registration_uuid(uuid, session):
+    return c.registration_uuid(ctxt, uuid, session)
 
 
-def board_on_join(session_id):
+def registration(code, session):
+    return c.registration(ctxt, code, session)
+
+
+def node_on_join(session_id):
     LOG.debug('A node with %s joined', session_id)

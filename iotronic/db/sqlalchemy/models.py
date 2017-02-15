@@ -133,7 +133,9 @@ class WampAgent(Base):
     )
     id = Column(Integer, primary_key=True)
     hostname = Column(String(255), nullable=False)
+    wsurl = Column(String(255), nullable=False)
     online = Column(Boolean, default=True)
+    ragent = Column(Boolean, default=False)
 
 
 class Node(Base):
@@ -150,9 +152,11 @@ class Node(Base):
     code = Column(String(25))
     status = Column(String(15), nullable=True)
     name = Column(String(255), nullable=True)
-    device = Column(String(255))
+    type = Column(String(255))
+    agent = Column(String(255), nullable=True)
     session = Column(String(255), nullable=True)
     mobile = Column(Boolean, default=False)
+    config = Column(JSONEncodedDict)
     extra = Column(JSONEncodedDict)
 
 

@@ -149,13 +149,13 @@ inspected node shall transition to MANAGEABLE status.
 INSPECTFAIL = 'inspect failed'
 """ Node inspection failed. """
 
-
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, CLEANFAIL)
 """Transitional states in which we allow updating a node."""
 
 # NEW
 OPERATIVE = 'operative'
 MAINTENANCE = 'maintenance'
+REGISTERED = 'registered'
 
 ##############
 # Power states
@@ -184,6 +184,7 @@ def on_enter(new_state, event):
     """Used to log when entering a state."""
     LOG.debug("Entering new state '%s' in response to event '%s'",
               new_state, event)
+
 
 watchers = {}
 watchers['on_exit'] = on_exit

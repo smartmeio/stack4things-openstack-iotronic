@@ -36,6 +36,9 @@ wamp_opts = [
     cfg.StrOpt('wamp_realm',
                default='s4t',
                help=('realm broker')),
+    cfg.BoolOpt('register_agent',
+                default=False,
+                help=('Flag for se a registration agent')),
 ]
 
 CONF = cfg.CONF
@@ -96,14 +99,20 @@ class WampFrontend(wamp.ApplicationSession):
     def onJoin(self, details):
         global wamp_session_caller, AGENT_HOST
         wamp_session_caller = self
-        import iotronic.wamp.registerd_functions as fun
 
-        self.subscribe(fun.board_on_leave, 'wamp.session.on_leave')
-        self.subscribe(fun.board_on_join, 'wamp.session.on_join')
+        import iotronic.wamp.functions as fun
+
+        self.subscribe(fun.node_on_leave, 'wamp.session.on_leave')
+        self.subscribe(fun.node_on_join, 'wamp.session.on_join')
 
         try:
-            self.register(fun.registration, u'stack4things.register')
-            self.register(fun.echo, AGENT_HOST + u'.stack4things.echo')
+            if CONF.wamp.register_agent:
+                self.register(fun.registration, u'stack4things.register')
+                LOG.info("I have been set as registration agent")
+            self.register(fun.registration_uuid,
+                          AGENT_HOST + u'.stack4things.register_uuid')
+            self.register(fun.echo,
+                          AGENT_HOST + u'.stack4things.echo')
             LOG.info("procedure registered")
         except Exception as e:
             LOG.error("could not register procedure: {0}".format(e))
@@ -199,21 +208,19 @@ class WampAgent(object):
 
         try:
             wpa = self.dbapi.register_wampagent(
-                {'hostname': self.host})
-
-        except exception.ConductorAlreadyRegistered:
-            LOG.warn(_LW("A conductor with hostname %(hostname)s "
-                         "was previously registered. Updating registration"),
-                     {'hostname': self.host})
+                {'hostname': self.host, 'wsurl': CONF.wamp.wamp_transport_url})
 
         except exception.WampAgentAlreadyRegistered:
             LOG.warn(_LW("A wampagent with hostname %(hostname)s "
                          "was previously registered. Updating registration"),
                      {'hostname': self.host})
 
-        wpa = self.dbapi.register_wampagent({'hostname': self.host},
-                                            update_existing=True)
+        wpa = self.dbapi.register_wampagent(
+            {'hostname': self.host, 'wsurl': CONF.wamp.wamp_transport_url},
+            update_existing=True)
         self.wampagent = wpa
+        self.wampagent.ragent = CONF.wamp.register_agent
+        self.wampagent.save()
 
         global AGENT_HOST
         AGENT_HOST = self.host

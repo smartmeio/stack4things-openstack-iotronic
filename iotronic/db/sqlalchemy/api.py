@@ -163,7 +163,7 @@ class Connection(api.Connection):
         if 'uuid' not in values:
             values['uuid'] = uuidutils.generate_uuid()
         if 'status' not in values:
-            values['status'] = states.OPERATIVE
+            values['status'] = states.REGISTERED
 
         node = models.Node()
         node.update(values)
@@ -260,19 +260,6 @@ class Connection(api.Connection):
             if values.get("instance_uuid") and ref.instance_uuid:
                 raise exception.NodeAssociated(
                     node=node_id, instance=ref.instance_uuid)
-
-            if 'provision_state' in values:
-                values['provision_updated_at'] = timeutils.utcnow()
-                if values['provision_state'] == states.INSPECTING:
-                    values['inspection_started_at'] = timeutils.utcnow()
-                    values['inspection_finished_at'] = None
-                elif (ref.provision_state == states.INSPECTING and
-                        values['provision_state'] == states.MANAGEABLE):
-                    values['inspection_finished_at'] = timeutils.utcnow()
-                    values['inspection_started_at'] = None
-                elif (ref.provision_state == states.INSPECTING and
-                        values['provision_state'] == states.INSPECTFAIL):
-                    values['inspection_started_at'] = None
 
             ref.update(values)
         return ref
@@ -424,6 +411,14 @@ class Connection(api.Connection):
                     .one())
         except NoResultFound:
             raise exception.WampAgentNotFound(wampagent=hostname)
+
+    def get_registration_wampagent(self):
+        try:
+            return (model_query(models.WampAgent)
+                    .filter_by(ragent=True, online=True)
+                    .one())
+        except NoResultFound:
+            raise exception.WampRegistrationAgentNotFound()
 
     def unregister_wampagent(self, hostname):
         session = get_session()

@@ -34,7 +34,7 @@ class Node(base.APIBase):
     code = wsme.wsattr(wtypes.text)
     status = wsme.wsattr(wtypes.text)
     name = wsme.wsattr(wtypes.text)
-    device = wsme.wsattr(wtypes.text)
+    type = wsme.wsattr(wtypes.text)
     session = wsme.wsattr(wtypes.text)
     mobile = types.boolean
     location = wsme.wsattr([loc.Location])

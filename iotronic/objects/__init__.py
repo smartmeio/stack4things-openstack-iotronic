@@ -16,16 +16,18 @@ from iotronic.objects import conductor
 from iotronic.objects import location
 from iotronic.objects import node
 from iotronic.objects import sessionwp
+from iotronic.objects import wampagent
 
 Conductor = conductor.Conductor
 Node = node.Node
 Location = location.Location
 SessionWP = sessionwp.SessionWP
-
+WampAgent = wampagent.WampAgent
 
 __all__ = (
     Conductor,
     Node,
     Location,
     SessionWP,
+    WampAgent,
 )

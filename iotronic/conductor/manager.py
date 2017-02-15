@@ -25,6 +25,7 @@ import time
 LOG = logging.getLogger(__name__)
 
 MANAGER_TOPIC = 'iotronic.conductor_manager'
+RAGENT = None
 
 conductor_opts = [
     cfg.StrOpt('api_url',
@@ -71,11 +72,18 @@ class ConductorManager(object):
         transport = oslo_messaging.get_transport(cfg.CONF)
         target = oslo_messaging.Target(topic=self.topic, server=self.host,
                                        version=self.RPC_API_VERSION)
+
+        ragent = self.dbapi.get_registration_wampagent()
+
+        LOG.info("Found registration agent: %s on %s",
+                 ragent.hostname, ragent.wsurl)
+
         endpoints = [
-            endp.ConductorEndpoint(),
+            endp.ConductorEndpoint(ragent),
         ]
         server = oslo_messaging.get_rpc_server(transport, target, endpoints,
                                                executor='threading')
+
         try:
             server.start()
             while True:

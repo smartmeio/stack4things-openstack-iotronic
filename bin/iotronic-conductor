@@ -19,11 +19,8 @@ Iotronic Conductor
 from oslo_config import cfg
 
 from iotronic.conductor.manager import ConductorManager
-
+import socket
 
 CONF = cfg.CONF
 if __name__ == '__main__':
-
-	cond=ConductorManager('iotronic')
-
-
+    cond = ConductorManager(socket.gethostname())
