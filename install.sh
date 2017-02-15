@@ -3,14 +3,24 @@
 function build_install {
     python setup.py build
     python setup.py install
-    rm -rf build
-    rm -rf iotronic.egg-info
-    rm -rf dist
 }
+
+function restart_apache {
+if which apache2 ; then
+    systemctl restart apache2
+else
+    systemctl restart httpd
+fi
+}
+
 case "$1" in
+    api)
+        build_install
+        restart_apache
+        ;;
+
     conductor)
         build_install
-        systemctl restart httpd
         cp bin/iotronic-conductor /usr/bin/
         ;;
         
@@ -21,12 +31,12 @@ case "$1" in
         
     all)
         build_install
-        systemctl restart httpd
+        restart_apache
         cp bin/iotronic-conductor /usr/bin/
         cp bin/iotronic-wamp-agent /usr/bin/
         ;;
         
     *)
-        echo $"Usage: $0 {conductor|wamp-agent|all}"
+        echo $"Usage: $0 {api|conductor|wamp-agent|all}"
         exit 1
 esac

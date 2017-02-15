@@ -117,7 +117,7 @@ class ConductorEndpoint(object):
         prov.conf_clean()
         p = prov.get_config()
         LOG.debug('sending this conf %s', p)
-        self.execute_on_board(ctx, node_id, 'destroyNode', (p,))
+        self.execute_on_node(ctx, node_id, 'destroyNode', (p,))
 
         node.destroy()
 
@@ -134,14 +134,13 @@ class ConductorEndpoint(object):
 
         return serializer.serialize_entity(ctx, new_node)
 
-    def execute_on_board(self, ctx, board, wamp_rpc_call, wamp_rpc_args):
-        LOG.debug('Executing \"%s\" on the board: %s', wamp_rpc_call, board)
+    def execute_on_node(self, ctx, node_uuid, wamp_rpc_call, wamp_rpc_args):
+        LOG.debug('Executing \"%s\" on the node: %s', wamp_rpc_call, node_uuid)
 
-        # ASAP get agent from node_uuid
         try:
-            node = objects.Node.get_by_uuid(ctx, board)
+            node = objects.Node.get_by_uuid(ctx, node_uuid)
         except Exception:
-            return exception.NodeNotFound(node=board)
+            return exception.NodeNotFound(node=node_uuid)
 
         s4t_topic = 's4t_invoke_wamp'
         full_topic = node.agent + '.' + s4t_topic
@@ -149,7 +148,7 @@ class ConductorEndpoint(object):
         self.target.topic = full_topic
         self.wamp_agent_client.prepare(timeout=10)
 
-        full_wamp_call = 'iotronic.' + board + "." + wamp_rpc_call
+        full_wamp_call = 'iotronic.' + node.uuid + "." + wamp_rpc_call
 
         return self.wamp_agent_client.call(ctx, full_topic,
                                            wamp_rpc_call=full_wamp_call,
