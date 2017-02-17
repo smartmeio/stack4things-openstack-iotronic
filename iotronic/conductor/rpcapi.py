@@ -17,10 +17,7 @@ Client side of the conductor RPC API.
 from iotronic.common import rpc
 from iotronic.conductor import manager
 from iotronic.objects import base
-from oslo_log import log as logging
 import oslo_messaging
-
-LOG = logging.getLogger(__name__)
 
 
 class ConductorAPI(object):

@@ -20,7 +20,6 @@ import os
 import shutil
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_utils import importutils
 import requests
 import sendfile
@@ -30,8 +29,6 @@ import six.moves.urllib.parse as urlparse
 from iotronic.common import exception
 from iotronic.common.i18n import _
 from iotronic.common import keystone
-
-LOG = logging.getLogger(__name__)
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
 

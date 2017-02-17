@@ -19,7 +19,6 @@ import itertools
 import random
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -30,7 +29,6 @@ from iotronic.common import exception
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger(__name__)
 
 _GLANCE_API_SERVER = None
 """ iterator that cycles (indefinitely) over glance API servers. """
