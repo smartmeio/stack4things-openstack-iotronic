@@ -20,7 +20,6 @@ from oslo_config import cfg
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import session as db_session
 from oslo_db.sqlalchemy import utils as db_utils
-from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -36,8 +35,6 @@ CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout',
                 'iotronic.conductor.manager',
                 group='conductor')
-
-LOG = log.getLogger(__name__)
 
 _FACADE = None
 
