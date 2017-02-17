@@ -24,7 +24,8 @@ from oslo_db import api as db_api
 import six
 
 _BACKEND_MAPPING = {'sqlalchemy': 'iotronic.db.sqlalchemy.api'}
-IMPL = db_api.DBAPI.from_config(cfg.CONF, backend_mapping=_BACKEND_MAPPING,
+IMPL = db_api.DBAPI.from_config(cfg.CONF,
+                                backend_mapping=_BACKEND_MAPPING,
                                 lazy=True)
 
 
@@ -278,6 +279,20 @@ class Connection(object):
     def get_wampagent_list(self, filters=None, limit=None, marker=None,
                            sort_key=None, sort_dir=None):
         """Return a list of wampagents.
+
+        :param filters: Filters to apply. Defaults to None.
+        :param limit: Maximum number of wampagents to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
+
+    @abc.abstractmethod
+    def get_session_by_node_uuid(self, filters=None, limit=None, marker=None,
+                                 sort_key=None, sort_dir=None):
+        """Return a Wamp session of a Node
 
         :param filters: Filters to apply. Defaults to None.
         :param limit: Maximum number of wampagents to return.
