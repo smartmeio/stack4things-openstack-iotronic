@@ -132,59 +132,11 @@ ENGINE = InnoDB
 AUTO_INCREMENT = 10
 DEFAULT CHARACTER SET = utf8;
 
-
--- -----------------------------------------------------
--- Table `iotronic`.`plugins`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `iotronic`.`plugins` ;
-
-CREATE TABLE IF NOT EXISTS `iotronic`.`plugins` (
-  `created_at` DATETIME NULL DEFAULT NULL,
-  `updated_at` DATETIME NULL DEFAULT NULL,
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(20) NOT NULL,
-  `category` VARCHAR(20) NOT NULL,
-  `jsonschema` LONGTEXT NOT NULL,
-  `code` LONGTEXT NOT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB
-AUTO_INCREMENT = 10
-DEFAULT CHARACTER SET = utf8;
-
-
--- -----------------------------------------------------
--- Table `iotronic`.`plugins_injected`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `iotronic`.`plugins_injected` ;
-
-CREATE TABLE IF NOT EXISTS `iotronic`.`plugins_injected` (
-  `created_at` DATETIME NULL DEFAULT NULL,
-  `updated_at` DATETIME NULL DEFAULT NULL,
-  `node_id` INT(11) NOT NULL,
-  `plugin_id` INT(11) NOT NULL,
-  `state` VARCHAR(20) NOT NULL)
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8;
-
-
--- -----------------------------------------------------
--- Table `iotronic`.`sensors`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `iotronic`.`sensors` ;
-
-CREATE TABLE IF NOT EXISTS `iotronic`.`sensors` (
-  `created_at` DATETIME NULL DEFAULT NULL,
-  `updated_at` DATETIME NULL DEFAULT NULL,
-  `id` INT NOT NULL,
-  `type` VARCHAR(45) NOT NULL,
-  `unit` VARCHAR(45) NOT NULL,
-  `fabric_name` VARCHAR(45) NULL DEFAULT NULL,
-  `model` VARCHAR(45) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8;
-
-
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+-- insert testing nodes
+INSERT INTO `nodes` VALUES ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','node','server',NULL,NULL,0,'{}','{}'),('2017-02-20 10:38:45',NULL,133,'ba1efce9-cad9-4ae1-a5d1-d90a8d203d3b','yunyun','registered','yun22','yun',NULL,NULL,0,'{}','{}'),('2017-02-20 10:39:08',NULL,134,'65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,NULL,0,'{}','{}');
+INSERT INTO `locations` VALUES ('2017-02-20 10:38:26',NULL,6,'2','1','3',132),('2017-02-20 10:38:45',NULL,7,'2','1','3',133),('2017-02-20 10:39:08',NULL,8,'2','1','3',134)

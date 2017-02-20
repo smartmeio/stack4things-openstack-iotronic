@@ -163,6 +163,27 @@ class NodesController(rest.RestController):
         pecan.request.rpcapi.destroy_node(pecan.request.context,
                                           rpc_node.uuid)
 
+    @expose.expose(Node, types.uuid_or_name, body=Node, status_code=200)
+    def patch(self, node_ident, val_Node):
+        """Update a node.
+
+        :param node_ident: UUID or logical name of a node.
+        :param Node: values to be changed
+        :return updated_node: updated_node
+        """
+
+        node = api_utils.get_rpc_node(node_ident)
+        val_Node = val_Node.as_dict()
+        for key in val_Node:
+            try:
+                node[key] = val_Node[key]
+            except Exception:
+                pass
+
+        updated_node = pecan.request.rpcapi.update_node(pecan.request.context,
+                                                        node)
+        return Node.convert_with_locates(updated_node)
+
     @expose.expose(Node, body=Node, status_code=201)
     def post(self, Node):
         """Create a new Node.

@@ -24,9 +24,7 @@ from iotronic.common.i18n import _
 from iotronic.common import utils
 from iotronic import objects
 
-
 CONF = cfg.CONF
-
 
 JSONPATCH_EXCEPTIONS = (jsonpatch.JsonPatchException,
                         jsonpatch.JsonPointerException,
@@ -87,10 +85,12 @@ def get_rpc_node(node_ident):
         return objects.Node.get_by_uuid(pecan.request.context, node_ident)
 
     # We can refer to nodes by their name, if the client supports it
-    if allow_node_logical_names():
-        if utils.is_hostname_safe(node_ident):
-            return objects.Node.get_by_name(pecan.request.context, node_ident)
-        raise exception.InvalidUuidOrName(name=node_ident)
+    # if allow_node_logical_names():
+    #    if utils.is_hostname_safe(node_ident):
+    else:
+        return objects.Node.get_by_name(pecan.request.context, node_ident)
+
+    raise exception.InvalidUuidOrName(name=node_ident)
 
     # Ensure we raise the same exception as we did for the Juno release
     raise exception.NodeNotFound(node=node_ident)

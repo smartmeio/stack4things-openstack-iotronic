@@ -126,6 +126,12 @@ class ConductorEndpoint(object):
 
         return
 
+    def update_node(self, ctx, node_obj):
+        node = serializer.deserialize_entity(ctx, node_obj)
+        LOG.debug('Updating node %s', node.name)
+        node.save()
+        return serializer.serialize_entity(ctx, node)
+
     def create_node(self, ctx, node_obj, location_obj):
         new_node = serializer.deserialize_entity(ctx, node_obj)
         LOG.debug('Creating node %s',
