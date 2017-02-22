@@ -166,3 +166,16 @@ class PluginsController(rest.RestController):
         rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
         pecan.request.rpcapi.destroy_plugin(pecan.request.context,
                                             rpc_plugin.uuid)
+
+    @expose.expose(None, types.uuid_or_name, types.uuid_or_name,
+                   status_code=200)
+    def put(self, plugin_ident, node_ident):
+        """inject a plugin into a node.
+
+        :param plugin_ident: UUID or logical name of a plugin.
+        :param node_ident: UUID or logical name of a node.
+        """
+        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
+        rpc_node = api_utils.get_rpc_node(node_ident)
+        pecan.request.rpcapi.inject_plugin(pecan.request.context,
+                                           rpc_plugin.uuid, rpc_node.uuid)

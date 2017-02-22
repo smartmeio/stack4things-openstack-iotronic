@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import cPickle as cpickle
 from iotronic.common import exception
 from iotronic.common import states
 from iotronic.conductor.provisioner import Provisioner
@@ -183,5 +184,19 @@ class ConductorEndpoint(object):
         new_plugin = serializer.deserialize_entity(ctx, plugin_obj)
         LOG.debug('Creating plugin %s',
                   new_plugin.name)
+        new_plugin.config = cpickle.dumps(new_plugin.config, 0)
         new_plugin.create()
         return serializer.serialize_entity(ctx, new_plugin)
+
+    def inject_plugin(self, ctx, plugin_uuid, node_uuid):
+        LOG.info('Injecting plugin with id %s into the node %s',
+                 plugin_uuid, node_uuid)
+        plugin = objects.Plugin.get_by_uuid(ctx, plugin_uuid)
+
+        try:
+            self.execute_on_node(ctx, node_uuid, 'PluginInject',
+                                 (plugin.name, plugin.config))
+        except Exception:
+            LOG.error('cannot execute remote injection on %s. '
+                      'Maybe it is OFFLINE', node_uuid)
+        return

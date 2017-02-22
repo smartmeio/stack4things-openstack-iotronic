@@ -168,3 +168,15 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'destroy_plugin', plugin_id=plugin_id)
+
+    def inject_plugin(self, context, plugin_uuid, node_uuid, topic=None):
+        """inject a plugin into a node.
+
+        :param context: request context.
+        :param plugin_uuid: plugin id or uuid.
+        :param ndoe_uuid: node id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'inject_plugin', plugin_uuid=plugin_uuid,
+                          node_uuid=node_uuid)
