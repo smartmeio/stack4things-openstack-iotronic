@@ -12,22 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# Server Specific Configurations
-# See https://pecan.readthedocs.org/en/latest/configuration.html#server-configuration # noqa
-server = {
-    'port': '1288',
-    'host': '0.0.0.0'
-}
+# This is the version 1 API
+BASE_VERSION = 1
 
-# Pecan Application Configurations
-# See https://pecan.readthedocs.org/en/latest/configuration.html#application-configuration # noqa
-app = {
-    'root': 'iotronic.api.controllers.root.RootController',
-    'modules': ['iotronic.api'],
-    'static_root': '%(confdir)s/public',
-    'debug': False,
-    'acl_public_routes': [
-        '/',
-        '/v1',
-    ],
-}
+MINOR_1_INITIAL_VERSION = 0
+MINOR_MAX_VERSION = 0
+
+# String representations of the minor and maximum versions
+MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION,
+                                    MINOR_1_INITIAL_VERSION)
+MAX_VERSION_STRING = '{}.{}'.format(BASE_VERSION,
+                                    MINOR_MAX_VERSION)

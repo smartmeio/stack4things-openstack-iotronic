@@ -140,3 +140,19 @@ def is_valid_name(name):
     :returns: True if the name is valid, False otherwise.
     """
     return not uuidutils.is_uuid_like(name)
+
+
+def check_for_invalid_fields(fields, object_fields):
+    """Check for requested non-existent fields.
+
+    Check if the user requested non-existent fields.
+
+    :param fields: A list of fields requested by the user
+    :object_fields: A list of fields supported by the object.
+    :raises: InvalidParameterValue if invalid fields were requested.
+
+    """
+    invalid_fields = set(fields) - set(object_fields)
+    if invalid_fields:
+        raise exception.InvalidParameterValue(
+            _('Field(s) "%s" are not valid') % ', '.join(invalid_fields))

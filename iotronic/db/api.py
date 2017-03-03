@@ -130,6 +130,14 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_node_id_by_uuid(self, node_uuid):
+        """Return a node id.
+
+        :param node_uuid: The uuid of a node.
+        # :returns: A node.id.
+        """
+
+    @abc.abstractmethod
     def get_node_by_name(self, node_name):
         """Return a node.
 
@@ -205,8 +213,7 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_session_by_node_uuid(self, filters=None, limit=None, marker=None,
-                                 sort_key=None, sort_dir=None):
+    def get_session_by_node_uuid(self, node_uuid, valid):
         """Return a Wamp session of a Node
 
         :param filters: Filters to apply. Defaults to None.

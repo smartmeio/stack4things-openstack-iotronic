@@ -13,11 +13,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sys
+
+from oslo_config import cfg
+import oslo_i18n as i18n
+from oslo_log import log
+
 from iotronic.api import app
 from iotronic.common import service
-import oslo_i18n
 
-oslo_i18n.install('iotronic')
-service.prepare_service([])
+
+CONF = cfg.CONF
+
+i18n.install('iotronic')
+
+service.prepare_service(sys.argv)
+
+LOG = log.getLogger(__name__)
+LOG.debug("Configuration:")
+CONF.log_opt_values(LOG, log.DEBUG)
 
 application = app.VersionSelectorApplication()

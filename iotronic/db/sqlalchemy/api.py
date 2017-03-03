@@ -125,12 +125,9 @@ class Connection(api.Connection):
     def _add_nodes_filters(self, query, filters):
         if filters is None:
             filters = []
-
-        if 'associated' in filters:
-            if filters['associated']:
-                query = query.filter(models.Node.instance_uuid is not None)
-            else:
-                query = query.filter(models.Node.instance_uuid is None)
+        #
+        if 'project_id' in filters:
+            query = query.filter(models.Node.project == filters['project_id'])
 
         return query
 
@@ -223,6 +220,13 @@ class Connection(api.Connection):
             return query.one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
+
+    def get_node_id_by_uuid(self, node_uuid):
+        query = model_query(models.Node.id).filter_by(uuid=node_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeNotFound(node=node_uuid)
 
     def get_node_by_uuid(self, node_uuid):
         query = model_query(models.Node).filter_by(uuid=node_uuid)
@@ -402,6 +406,7 @@ class Connection(api.Connection):
             models.SessionWP).filter_by(
             node_uuid=node_uuid).filter_by(
             valid=valid)
+
         try:
             return query.one()
         except NoResultFound:

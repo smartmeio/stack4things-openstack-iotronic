@@ -89,7 +89,7 @@ class SessionWP(base.IotronicObject):
         return session
 
     @base.remotable_classmethod
-    def get_session_by_node_uuid(cls, node_uuid, valid=True, context=None):
+    def get_session_by_node_uuid(cls, context, node_uuid, valid=True):
         """Find a session based on uuid and return a :class:`SessionWP` object.
 
         :param node_uuid: the uuid of a node.
@@ -209,6 +209,6 @@ class SessionWP(base.IotronicObject):
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         for field in self.fields:
             if (hasattr(
-                    self, base.get_attrname(field)) and
-                    self[field] != current[field]):
+                    self, base.get_attrname(field))
+                    and self[field] != current[field]):
                 self[field] = current[field]

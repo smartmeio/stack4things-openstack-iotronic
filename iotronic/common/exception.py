@@ -405,7 +405,7 @@ class ServiceUnavailable(IotronicException):
 
 
 class Forbidden(IotronicException):
-    message = _("Requested OpenStack Images API is forbidden")
+    message = _("Requested Iotronic API is forbidden")
 
 
 class BadRequest(IotronicException):

@@ -109,6 +109,27 @@ class Location(base.IotronicObject):
         return Location._from_db_object_list(db_locations, cls, context)
 
     @base.remotable_classmethod
+    def list_by_node_uuid(cls, context, node_uuid, limit=None, marker=None,
+                          sort_key=None, sort_dir=None):
+        """Return a list of Location objects associated with a given node ID.
+
+        :param context: Security context.
+        :param node_id: the ID of the node.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :returns: a list of :class:`Location` object.
+
+        """
+        node_id = cls.dbapi.get_node_id_by_uuid(node_uuid)[0]
+        db_locations = cls.dbapi.get_locations_by_node_id(node_id, limit=limit,
+                                                          marker=marker,
+                                                          sort_key=sort_key,
+                                                          sort_dir=sort_dir)
+        return Location._from_db_object_list(db_locations, cls, context)
+
+    @base.remotable_classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None):
         """Return a list of Location objects associated with a given node ID.
@@ -194,6 +215,7 @@ class Location(base.IotronicObject):
         """
         current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
         for field in self.fields:
-            if (hasattr(self, base.get_attrname(field)) and
-                    self[field] != current[field]):
+            if (hasattr(
+                    self, base.get_attrname(field))
+                    and self[field] != current[field]):
                 self[field] = current[field]

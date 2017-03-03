@@ -14,31 +14,38 @@
 
 """
 Version 1 of the Iotronic API
+
+Specification can be found at doc/source/webapi/v1.rst
 """
 
-from iotronic.api.controllers import base
-from iotronic.api.controllers import link
-from iotronic.api.controllers.v1 import node
-from iotronic.api.controllers.v1 import plugin
-from iotronic.api import expose
-from iotronic.common.i18n import _
 import pecan
 from pecan import rest
 from webob import exc
 from wsme import types as wtypes
 
+from iotronic.api.controllers import base
+from iotronic.api.controllers import link
+from iotronic.api.controllers.v1 import plugin
+# from iotronic.api.controllers.v1 import driver
+# from iotronic.api.controllers.v1 import port
+# from iotronic.api.controllers.v1 import portgroup
+# from iotronic.api.controllers.v1 import ramdisk
+# from iotronic.api.controllers.v1 import utils
 
-BASE_VERSION = 1
+from iotronic.api.controllers.v1 import node
 
-MIN_VER_STR = '1.0'
+from iotronic.api.controllers.v1 import versions
+from iotronic.api import expose
+from iotronic.common.i18n import _
 
-MAX_VER_STR = '1.0'
+BASE_VERSION = versions.BASE_VERSION
 
-
-MIN_VER = base.Version({base.Version.string: MIN_VER_STR},
-                       MIN_VER_STR, MAX_VER_STR)
-MAX_VER = base.Version({base.Version.string: MAX_VER_STR},
-                       MIN_VER_STR, MAX_VER_STR)
+MIN_VER = base.Version(
+    {base.Version.string: versions.MIN_VERSION_STRING},
+    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
+MAX_VER = base.Version(
+    {base.Version.string: versions.MAX_VERSION_STRING},
+    versions.MIN_VERSION_STRING, versions.MAX_VERSION_STRING)
 
 
 class V1(base.APIBase):
@@ -53,31 +60,11 @@ class V1(base.APIBase):
     nodes = [link.Link]
     """Links to the nodes resource"""
 
-    plugins = [link.Link]
-
     @staticmethod
     def convert():
         v1 = V1()
         v1.id = "v1"
-
-        v1.nodes = [link.Link.make_link('self', pecan.request.host_url,
-                                        'nodes', ''),
-                    link.Link.make_link('bookmark',
-                                        pecan.request.host_url,
-                                        'nodes', '',
-                                        bookmark=True)
-                    ]
-
-        v1.plugins = [link.Link.make_link('self', pecan.request.host_url,
-                                          'plugins', ''),
-                      link.Link.make_link('bookmark',
-                                          pecan.request.host_url,
-                                          'plugins', '',
-                                          bookmark=True)
-                      ]
-
-        '''
-        v1.links = [link.Link.make_link('self', pecan.request.host_url,
+        v1.links = [link.Link.make_link('self', pecan.request.public_url,
                                         'v1', '', bookmark=True),
                     link.Link.make_link('describedby',
                                         'http://docs.openstack.org',
@@ -85,7 +72,23 @@ class V1(base.APIBase):
                                         'api-spec-v1.html',
                                         bookmark=True, type='text/html')
                     ]
-        '''
+
+        v1.plugins = [link.Link.make_link('self', pecan.request.public_url,
+                                          'plugins', ''),
+                      link.Link.make_link('bookmark',
+                                          pecan.request.public_url,
+                                          'plugins', '',
+                                          bookmark=True)
+                      ]
+
+        v1.nodes = [link.Link.make_link('self', pecan.request.public_url,
+                                        'nodes', ''),
+                    link.Link.make_link('bookmark',
+                                        pecan.request.public_url,
+                                        'nodes', '',
+                                        bookmark=True)
+                    ]
+
         return v1
 
 
@@ -110,25 +113,30 @@ class Controller(rest.RestController):
             raise exc.HTTPNotAcceptable(_(
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service. The supported "
-                "version range is: [%(min)s,%(max)s]."
-                ) % {'ver': version, 'min': MIN_VER_STR,
-                     'max': MAX_VER_STR},
+                "version range is: [%(min)s, %(max)s].") %
+                {'ver': version, 'min': versions.MIN_VERSION_STRING,
+                 'max': versions.MAX_VERSION_STRING},
                 headers=headers)
         # ensure the minor version is within the supported range
         if version < MIN_VER or version > MAX_VER:
             raise exc.HTTPNotAcceptable(_(
                 "Version %(ver)s was requested but the minor version is not "
                 "supported by this service. The supported version range is: "
-                "[%(min)s, %(max)s].") % {'ver': version, 'min': MIN_VER_STR,
-                                          'max': MAX_VER_STR}, headers=headers)
+                "[%(min)s, %(max)s].") %
+                {'ver': version, 'min': versions.MIN_VERSION_STRING,
+                 'max': versions.MAX_VERSION_STRING},
+                headers=headers)
 
     @pecan.expose()
     def _route(self, args):
-        v = base.Version(pecan.request.headers, MIN_VER_STR, MAX_VER_STR)
+        v = base.Version(pecan.request.headers, versions.MIN_VERSION_STRING,
+                         versions.MAX_VERSION_STRING)
 
         # Always set the min and max headers
-        pecan.response.headers[base.Version.min_string] = MIN_VER_STR
-        pecan.response.headers[base.Version.max_string] = MAX_VER_STR
+        pecan.response.headers[base.Version.min_string] = (
+            versions.MIN_VERSION_STRING)
+        pecan.response.headers[base.Version.max_string] = (
+            versions.MAX_VERSION_STRING)
 
         # assert that requested version is supported
         self._check_version(v, pecan.response.headers)
@@ -138,4 +146,4 @@ class Controller(rest.RestController):
         return super(Controller, self)._route(args)
 
 
-__all__ = (Controller)
+__all__ = ('Controller',)

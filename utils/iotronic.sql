@@ -70,7 +70,8 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`nodes` (
   `name` VARCHAR(255) NULL DEFAULT NULL,
   `type` VARCHAR(255) NOT NULL,
   `agent` VARCHAR(255) NULL DEFAULT NULL,
-  `session` VARCHAR(255) NULL DEFAULT NULL,
+  `owner` VARCHAR(36) NOT NULL,
+  `project` VARCHAR(36) NOT NULL,
   `mobile` TINYINT(1) NOT NULL DEFAULT '0',
   `config` TEXT NULL DEFAULT NULL,
   `extra` TEXT NULL DEFAULT NULL,
@@ -189,5 +190,11 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 
 -- insert testing nodes
-INSERT INTO `nodes` VALUES ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','node','server',NULL,NULL,0,'{}','{}'),('2017-02-20 10:38:45',NULL,133,'ba1efce9-cad9-4ae1-a5d1-d90a8d203d3b','yunyun','registered','yun22','yun',NULL,NULL,0,'{}','{}'),('2017-02-20 10:39:08',NULL,134,'65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,NULL,0,'{}','{}');
-INSERT INTO `locations` VALUES ('2017-02-20 10:38:26',NULL,6,'2','1','3',132),('2017-02-20 10:38:45',NULL,7,'2','1','3',133),('2017-02-20 10:39:08',NULL,8,'2','1','3',134)
+INSERT INTO `nodes` VALUES
+  ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','node','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
+  ('2017-02-20 10:38:45',NULL,133,'ba1efce9-cad9-4ae1-a5d1-d90a8d203d3b','yunyun','registered','yun22','yun',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
+  ('2017-02-20 10:39:08',NULL,134,'65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}');
+INSERT INTO `locations` VALUES
+  ('2017-02-20 10:38:26',NULL,6,'2','1','3',132),
+  ('2017-02-20 10:38:45',NULL,7,'2','1','3',133),
+  ('2017-02-20 10:39:08',NULL,8,'2','1','3',134)
