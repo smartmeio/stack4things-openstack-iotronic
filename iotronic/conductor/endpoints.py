@@ -13,14 +13,15 @@
 #    under the License.
 
 import cPickle as cpickle
-from iotronic.common import exception
 from iotronic.common import states
 from iotronic.conductor.provisioner import Provisioner
 from iotronic import objects
 from iotronic.objects import base as objects_base
+from iotronic.wamp import wampmessage as wm
 from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
+
 
 import random
 
@@ -50,18 +51,24 @@ class ConductorEndpoint(object):
         LOG.info("ECHO: %s" % data)
         return data
 
-    def registration_uuid(self, ctx, uuid, session_num):
+    def connection(self, ctx, uuid, session_num):
         LOG.debug('Received registration from %s with session %s',
                   uuid, session_num)
         try:
             node = objects.Node.get_by_uuid(ctx, uuid)
-        except Exception:
-            return exception.NodeNotFound(node=uuid)
+        except Exception as exc:
+            msg = exc.message % {'node': uuid}
+            LOG.error(msg)
+            wmessage = wm.WampError(msg).serialize()
+            return wmessage
+
         try:
-            old_session = objects.SessionWP(
-                ctx).get_session_by_node_uuid(node.uuid, valid=True)
-            old_session.valid = False
-            old_session.save()
+            old_ses = objects.SessionWP(ctx)
+            old_ses = old_ses.get_session_by_node_uuid(ctx, node.uuid,
+                                                       valid=True)
+            old_ses.valid = False
+            old_ses.save()
+
         except Exception:
             LOG.debug('valid session for %s not found', node.uuid)
 
@@ -74,23 +81,28 @@ class ConductorEndpoint(object):
         session.session_id = session_num
         session.create()
         session.save()
-        return
+        return wm.WampSuccess('').serialize()
 
     def registration(self, ctx, code, session_num):
         LOG.debug('Received registration from %s with session %s',
                   code, session_num)
         try:
             node = objects.Node.get_by_code(ctx, code)
-        except Exception:
-            return exception.NodeNotFound(node=code)
+        except Exception as exc:
+            msg = exc.message % {'node': code}
+            LOG.error(msg)
+            wmessage = wm.WampError(msg).serialize()
+            return wmessage
+
         try:
-            old_session = objects.SessionWP(ctx
-                                            ).get_session_by_node_uuid(
-                node.uuid, valid=True)
-            old_session.valid = False
-            old_session.save()
+            old_ses = objects.SessionWP(ctx)
+            old_ses = old_ses.get_session_by_node_uuid(ctx, node.uuid,
+                                                       valid=True)
+            old_ses.valid = False
+            old_ses.save()
+
         except Exception:
-            LOG.debug('valid session for %s Not found', node.uuid)
+            LOG.debug('valid session for %s not found', node.uuid)
 
         session = objects.SessionWP(ctx)
         session.node_id = node.id
@@ -110,7 +122,9 @@ class ConductorEndpoint(object):
         node.save()
 
         LOG.debug('sending this conf %s', node.config)
-        return node.config
+
+        wmessage = wm.WampSuccess(node.config)
+        return wmessage.serialize()
 
     def destroy_node(self, ctx, node_id):
         LOG.info('Destroying node with id %s',

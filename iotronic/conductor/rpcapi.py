@@ -64,8 +64,8 @@ class ConductorAPI(object):
         return cctxt.call(context, 'registration',
                           code=code, session_num=session_num)
 
-    def registration_uuid(self, context, uuid, session_num, topic=None):
-        """Registration of a node.
+    def connection(self, context, uuid, session_num, topic=None):
+        """Connection of a node.
 
         :param context: request context.
         :param uuid: uuid node
@@ -73,7 +73,7 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
-        return cctxt.call(context, 'registration_uuid',
+        return cctxt.call(context, 'connection',
                           uuid=uuid, session_num=session_num)
 
     def create_node(self, context, node_obj, location_obj, topic=None):

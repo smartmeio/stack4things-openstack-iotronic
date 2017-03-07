@@ -1,5 +1,5 @@
-# coding=utf-8
-#
+# Copyright 2017 MDSLAB - University of Messina
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,13 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_utils import strutils
-from oslo_utils import uuidutils
-
 from iotronic.common import exception
 from iotronic.db import api as dbapi
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
+from oslo_utils import strutils
 
 
 class SessionWP(base.IotronicObject):
@@ -61,8 +59,6 @@ class SessionWP(base.IotronicObject):
         """
         if strutils.is_int_like(session_id):
             return cls.get_by_id(context, session_id)
-        elif uuidutils.is_uuid_like(session_id):
-            return cls.get_by_uuid(context, session_id)
         else:
             raise exception.InvalidIdentity(identity=session_id)
 
@@ -74,17 +70,6 @@ class SessionWP(base.IotronicObject):
         :returns: a :class:`SessionWP` object.
         """
         db_session = cls.dbapi.get_session_by_id(ses_id)
-        session = SessionWP._from_db_object(cls(context), db_session)
-        return session
-
-    @base.remotable_classmethod
-    def get_by_session_id(cls, context, session_id):
-        """Find a session based on its integer id and return a SessionWP object.
-
-        :param session_id: the id of a session.
-        :returns: a :class:`SessionWP` object.
-        """
-        db_session = cls.dbapi.get_session_by_session_id(session_id)
         session = SessionWP._from_db_object(cls(context), db_session)
         return session
 
@@ -119,28 +104,6 @@ class SessionWP(base.IotronicObject):
                                                  sort_key=sort_key,
                                                  sort_dir=sort_dir)
         return SessionWP._from_db_object_list(db_sessions, cls, context)
-
-    '''
-    @base.remotable_classmethod
-    def list_by_node_id(cls, context, node_id, limit=None, marker=None,
-                        sort_key=None, sort_dir=None):
-        """Return a list of SessionWP objects associated with a given node ID.
-
-        :param context: Security context.
-        :param node_id: the ID of the node.
-        :param limit: maximum number of resources to return in a single result.
-        :param marker: pagination marker for large data sets.
-        :param sort_key: column to sort results by.
-        :param sort_dir: direction to sort. "asc" or "desc".
-        :returns: a list of :class:`SessionWP` object.
-
-        """
-        db_sessions = cls.dbapi.get_sessions_by_node_id(node_id, limit=limit,
-                                                  marker=marker,
-                                                  sort_key=sort_key,
-                                                  sort_dir=sort_dir)
-        return SessionWP._from_db_object_list(db_sessions, cls, context)
-    '''
 
     @base.remotable
     def create(self, context=None):

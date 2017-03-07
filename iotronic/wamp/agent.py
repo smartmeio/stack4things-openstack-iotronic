@@ -1,4 +1,4 @@
-# Copyright 2011 OpenStack LLC.
+# Copyright 2017 MDSLAB - University of Messina
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -113,8 +113,8 @@ class WampFrontend(wamp.ApplicationSession):
             if CONF.wamp.register_agent:
                 self.register(fun.registration, u'stack4things.register')
                 LOG.info("I have been set as registration agent")
-            self.register(fun.registration_uuid,
-                          AGENT_HOST + u'.stack4things.register_uuid')
+            self.register(fun.connection,
+                          AGENT_HOST + u'.stack4things.connection')
             self.register(fun.echo,
                           AGENT_HOST + u'.stack4things.echo')
             LOG.info("procedure registered")

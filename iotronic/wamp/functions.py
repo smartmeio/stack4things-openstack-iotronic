@@ -1,4 +1,4 @@
-# Copyright 2011 OpenStack LLC.
+# Copyright 2017 MDSLAB - University of Messina
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -54,8 +54,8 @@ def node_on_leave(session_id):
         LOG.debug('session %s not found', session_id)
 
 
-def registration_uuid(uuid, session):
-    return c.registration_uuid(ctxt, uuid, session)
+def connection(uuid, session):
+    return c.connection(ctxt, uuid, session)
 
 
 def registration(code, session):

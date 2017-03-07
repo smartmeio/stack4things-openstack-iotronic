@@ -406,13 +406,12 @@ class Connection(api.Connection):
             models.SessionWP).filter_by(
             node_uuid=node_uuid).filter_by(
             valid=valid)
-
         try:
             return query.one()
         except NoResultFound:
             raise exception.NodeNotConnected(node=node_uuid)
 
-    def get_session_by_session_id(self, session_id):
+    def get_session_by_id(self, session_id):
         query = model_query(models.SessionWP).filter_by(session_id=session_id)
         try:
             return query.one()
