@@ -144,8 +144,14 @@ class NodesController(rest.RestController):
         filters = {}
 
         # bounding the request to a project
-        if project and pecan.request.context.is_admin:
-            filters['project_id'] = project
+        if project:
+            if pecan.request.context.is_admin:
+                filters['project_id'] = project
+            else:
+                msg = ("Project parameter can be used only "
+                       "by the administrator.")
+                raise wsme.exc.ClientSideError(msg,
+                                               status_code=400)
         else:
             filters['project_id'] = pecan.request.context.project_id
 
