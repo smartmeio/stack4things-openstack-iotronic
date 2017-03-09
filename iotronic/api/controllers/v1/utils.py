@@ -142,6 +142,12 @@ def is_valid_name(name):
     return not uuidutils.is_uuid_like(name)
 
 
+def is_valid_logical_name(name):
+    """Determine if the provided name is a valid hostname."""
+
+    return utils.is_valid_logical_name(name)
+
+
 def check_for_invalid_fields(fields, object_fields):
     """Check for requested non-existent fields.
 
