@@ -119,6 +119,10 @@ class NodesController(rest.RestController):
 
     invalid_sort_key_list = ['extra', 'location']
 
+    _custom_actions = {
+        'detail': ['GET'],
+    }
+
     def _get_nodes_collection(self, marker, limit,
                               sort_key, sort_dir,
                               project=None,
@@ -176,7 +180,7 @@ class NodesController(rest.RestController):
                    wtypes.text, types.listtype, wtypes.text)
     def get_all(self, marker=None,
                 limit=None, sort_key='id', sort_dir='asc',
-                fields=None, project=None):
+                fields=None):
         """Retrieve a list of nodes.
 
         :param marker: pagination marker for large data sets.
@@ -186,7 +190,6 @@ class NodesController(rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
-        :param project: Optional string value to get only nodes of the project.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
@@ -197,7 +200,6 @@ class NodesController(rest.RestController):
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_nodes_collection(marker,
                                           limit, sort_key, sort_dir,
-                                          project=project,
                                           fields=fields)
 
     @expose.expose(Node, body=Node, status_code=201)
@@ -278,3 +280,35 @@ class NodesController(rest.RestController):
         updated_node = pecan.request.rpcapi.update_node(pecan.request.context,
                                                         node)
         return Node.convert_with_links(updated_node)
+
+    @expose.expose(NodeCollection, types.uuid, int, wtypes.text,
+                   wtypes.text, types.listtype, wtypes.text)
+    def detail(self, marker=None,
+               limit=None, sort_key='id', sort_dir='asc',
+               fields=None, project=None):
+        """Retrieve a list of nodes.
+
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param project: Optional string value to get only nodes of the project.
+        :param fields: Optional, a list with a specified set of fields
+                       of the resource to be returned.
+        """
+
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('iot:node:get', cdict, cdict)
+
+        # /detail should only work against collections
+        parent = pecan.request.path.split('/')[:-1][-1]
+        if parent != "nodes":
+            raise exception.HTTPNotFound()
+
+        return self._get_nodes_collection(marker,
+                                          limit, sort_key, sort_dir,
+                                          project=project,
+                                          fields=fields)
