@@ -42,6 +42,7 @@ class Node(base.APIBase):
     session = wsme.wsattr(wtypes.text)
     project = types.uuid
     mobile = types.boolean
+    links = wsme.wsattr([link.Link], readonly=True)
     location = wsme.wsattr([loc.Location])
     extra = types.jsontype
 
@@ -61,6 +62,8 @@ class Node(base.APIBase):
         if fields is not None:
             node.unset_fields_except(fields)
 
+        # rel_name, url, resource, resource_args,
+        #              bookmark=False, type=wtypes.Unset
         node.links = [link.Link.make_link('self', url, 'nodes',
                                           node_uuid),
                       link.Link.make_link('bookmark', url, 'nodes',

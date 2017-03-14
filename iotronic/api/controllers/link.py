@@ -27,7 +27,7 @@ def build_url(resource, resource_args, bookmark=False, base_url=None):
     # FIXME(lucasagomes): I'm getting a 404 when doing a GET on
     # a nested resource that the URL ends with a  '/'.
     # https://groups.google.com/forum/#!topic/pecan-dev/QfSeviLg5qs
-    # template += '%(args)s' if resource_args.startswith('?') else '/%(args)s'
+    template += '%(args)s' if resource_args.startswith('?') else '/%(args)s'
     return template % {'url': base_url, 'res': resource, 'args': resource_args}
 
 
