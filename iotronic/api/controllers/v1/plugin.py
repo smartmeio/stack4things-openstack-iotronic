@@ -26,7 +26,7 @@ from pecan import rest
 import wsme
 from wsme import types as wtypes
 
-_DEFAULT_RETURN_FIELDS = ('name', 'uuid')
+_DEFAULT_RETURN_FIELDS = ('name', 'uuid', 'owner', 'public')
 
 
 class Plugin(base.APIBase):
@@ -36,6 +36,9 @@ class Plugin(base.APIBase):
     uuid = types.uuid
     name = wsme.wsattr(wtypes.text)
     config = wsme.wsattr(wtypes.text)
+    public = types.boolean
+    owner = types.uuid
+    links = wsme.wsattr([link.Link], readonly=True)
     extra = types.jsontype
 
     def __init__(self, **kwargs):
@@ -95,10 +98,14 @@ class PluginsController(rest.RestController):
 
     invalid_sort_key_list = ['extra', 'location']
 
+    _custom_actions = {
+        'detail': ['GET'],
+    }
+
     def _get_plugins_collection(self, marker, limit,
                                 sort_key, sort_dir,
-                                resource_class=None,
-                                resource_url=None, fields=None):
+                                fields=None, with_publics=False,
+                                all_plugins=False):
 
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -114,9 +121,16 @@ class PluginsController(rest.RestController):
                  "sorting") % {'key': sort_key})
 
         filters = {}
-
-        if resource_class is not None:
-            filters['resource_class'] = resource_class
+        if all_plugins and not pecan.request.context.is_admin:
+            msg = ("all_plugins parameter can only be used  "
+                   "by the administrator.")
+            raise wsme.exc.ClientSideError(msg,
+                                           status_code=400)
+        else:
+            if not all_plugins:
+                filters['owner'] = pecan.request.context.user_id
+                if with_publics:
+                    filters['public'] = with_publics
 
         plugins = objects.Plugin.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -125,7 +139,6 @@ class PluginsController(rest.RestController):
         parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
 
         return PluginCollection.convert_with_links(plugins, limit,
-                                                   url=resource_url,
                                                    fields=fields,
                                                    **parameters)
 
@@ -137,18 +150,20 @@ class PluginsController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = pecan.request.context.to_policy_values()
-        policy.authorize('iot:plugin:get', cdict, cdict)
 
         rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
+
+        cdict = pecan.request.context.to_policy_values()
+        cdict['owner'] = rpc_plugin.owner
+        policy.authorize('iot:plugin:get_one', cdict, cdict)
 
         return Plugin.convert_with_links(rpc_plugin, fields=fields)
 
     @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype, wtypes.text)
+                   wtypes.text, types.listtype)
     def get_all(self, marker=None,
                 limit=None, sort_key='id', sort_dir='asc',
-                fields=None, resource_class=None):
+                fields=None):
         """Retrieve a list of plugins.
 
         :param marker: pagination marker for large data sets.
@@ -158,10 +173,6 @@ class PluginsController(rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
-        :param project: Optional string value to get only plugins
-                        of the project.
-        :param resource_class: Optional string value to get only plugins with
-                               that resource_class.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
@@ -172,7 +183,6 @@ class PluginsController(rest.RestController):
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_plugins_collection(marker,
                                             limit, sort_key, sort_dir,
-                                            resource_class=resource_class,
                                             fields=fields)
 
     @expose.expose(Plugin, body=Plugin, status_code=201)
@@ -197,6 +207,8 @@ class PluginsController(rest.RestController):
 
         new_Plugin = objects.Plugin(pecan.request.context,
                                     **Plugin.as_dict())
+
+        new_Plugin.owner = cdict['user']
 
         new_Plugin = pecan.request.rpcapi.create_plugin(pecan.request.context,
                                                         new_Plugin)
@@ -259,3 +271,38 @@ class PluginsController(rest.RestController):
         rpc_node = api_utils.get_rpc_node(node_ident)
         pecan.request.rpcapi.inject_plugin(pecan.request.context,
                                            rpc_plugin.uuid, rpc_node.uuid)
+
+    @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
+                   wtypes.text, types.listtype, types.boolean, types.boolean)
+    def detail(self, marker=None,
+               limit=None, sort_key='id', sort_dir='asc',
+               fields=None, with_publics=False, all_plugins=False):
+        """Retrieve a list of plugins.
+
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param with_publics: Optional boolean to get also public pluings.
+        :param all_plugins: Optional boolean to get all the pluings.
+                            Only for the admin
+        :param fields: Optional, a list with a specified set of fields
+                       of the resource to be returned.
+        """
+
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('iot:plugin:get', cdict, cdict)
+
+        # /detail should only work against collections
+        parent = pecan.request.path.split('/')[:-1][-1]
+        if parent != "plugins":
+            raise exception.HTTPNotFound()
+
+        return self._get_plugins_collection(marker,
+                                            limit, sort_key, sort_dir,
+                                            with_publics=with_publics,
+                                            all_plugins=all_plugins,
+                                            fields=fields)

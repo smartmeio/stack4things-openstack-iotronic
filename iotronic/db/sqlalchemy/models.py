@@ -203,6 +203,8 @@ class Plugin(Base):
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
     name = Column(String(36))
+    owner = Column(String(36))
+    public = Column(Boolean, default=False)
     config = Column(TEXT)
     extra = Column(JSONEncodedDict)
 

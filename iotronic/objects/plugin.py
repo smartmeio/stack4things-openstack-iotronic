@@ -32,6 +32,8 @@ class Plugin(base.IotronicObject):
         'id': int,
         'uuid': obj_utils.str_or_none,
         'name': obj_utils.str_or_none,
+        'owner': obj_utils.str_or_none,
+        'public': bool,
         'config': obj_utils.str_or_none,
         'extra': obj_utils.dict_or_none,
     }

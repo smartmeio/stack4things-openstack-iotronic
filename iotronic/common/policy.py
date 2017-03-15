@@ -53,6 +53,16 @@ default_policies = [
     policy.RuleDefault('is_user_iot',
                        'role:user_iot',
                        description='Full read/write API access'),
+    policy.RuleDefault('is_owner',
+                       'user:%(owner)s',
+                       description='full access to the owner'),
+    policy.RuleDefault('admin_or_owner',
+                       'rule:is_admin or rule:is_owner',
+                       description='full access to the owner or the admin'),
+    policy.RuleDefault('is_iot_member',
+                       'rule:is_admin_iot_project '
+                       'or rule:is_manager_iot_project or rule:is_user_iot',
+                       description='define a member on iot context'),
 ]
 
 # NOTE(deva): to follow policy-in-code spec, we define defaults for
@@ -62,8 +72,7 @@ default_policies = [
 
 node_policies = [
     policy.RuleDefault('iot:node:get',
-                       'rule:is_admin or rule:is_admin_iot_project '
-                       'or rule:is_manager_iot_project or rule:is_user_iot',
+                       'rule:is_admin or rule:is_iot_member',
                        description='Retrieve Node records'),
     policy.RuleDefault('iot:node:create',
                        'rule:is_admin_iot_project',
@@ -81,19 +90,16 @@ node_policies = [
 
 plugin_policies = [
     policy.RuleDefault('iot:plugin:get',
-                       'rule:is_admin or rule:is_admin_iot_project '
-                       'or rule:is_manager_iot_project or rule:is_user_iot',
+                       'rule:is_admin or rule:is_iot_member',
                        description='Retrieve Plugin records'),
     policy.RuleDefault('iot:plugin:create',
-                       'rule:is_admin_iot_project',
+                       'rule:is_iot_member',
                        description='Create Plugin records'),
-    policy.RuleDefault('iot:plugin:delete',
-                       'rule:is_admin or rule:is_admin_iot_project '
-                       'or rule:is_manager_iot_project',
+    policy.RuleDefault('iot:plugin:get_one', 'rule:admin_or_owner',
+                       description='Retrieve a Plugin record'),
+    policy.RuleDefault('iot:plugin:delete', 'rule:admin_or_owner',
                        description='Delete Plugin records'),
-    policy.RuleDefault('iot:plugin:update',
-                       'rule:is_admin or rule:is_admin_iot_project '
-                       'or rule:is_manager_iot_project',
+    policy.RuleDefault('iot:plugin:update', 'rule:admin_or_owner',
                        description='Update Plugin records'),
     policy.RuleDefault('iot:plugin:inject',
                        'rule:is_admin or rule:is_admin_iot_project '

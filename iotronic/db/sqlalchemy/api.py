@@ -23,13 +23,16 @@ from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+from sqlalchemy import or_
 from sqlalchemy.orm.exc import NoResultFound
+
 
 from iotronic.common import exception
 from iotronic.common.i18n import _
 from iotronic.common import states
 from iotronic.db import api
 from iotronic.db.sqlalchemy import models
+
 
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout',
@@ -125,7 +128,7 @@ class Connection(api.Connection):
     def _add_nodes_filters(self, query, filters):
         if filters is None:
             filters = []
-        #
+
         if 'project_id' in filters:
             query = query.filter(models.Node.project == filters['project_id'])
 
@@ -134,7 +137,16 @@ class Connection(api.Connection):
     def _add_plugins_filters(self, query, filters):
         if filters is None:
             filters = []
-        # TBD
+
+        if 'owner' in filters:
+            if 'public' in filters and filters['public']:
+                query = query.filter(
+                    or_(
+                        models.Plugin.owner == filters['owner'],
+                        models.Plugin.public == 1)
+                )
+            else:
+                query = query.filter(models.Plugin.owner == filters['owner'])
 
         return query
 
