@@ -21,6 +21,11 @@ ERROR = 'ERROR'
 WARNING = 'WARNING'
 
 
+def deserialize(received):
+    m = json.loads(received)
+    return WampMessage(**m)
+
+
 class WampMessage(object):
     def __init__(self, message=None, result=None):
         self.message = message
@@ -28,10 +33,6 @@ class WampMessage(object):
 
     def serialize(self):
         return json.dumps(self, default=lambda o: o.__dict__)
-
-    def deserialize(self, received):
-        self.__dict__ = json.loads(received)
-        return self
 
 
 class WampSuccess(WampMessage):

@@ -18,23 +18,23 @@ serializer = objects_base.IotronicObjectSerializer()
 
 
 class Provisioner(object):
-    def __init__(self, node=None):
-        if not node:
+    def __init__(self, board=None):
+        if not board:
             self.config = {"iotronic": {"extra": {}}}
         else:
-            self.config = node.config
+            self.config = board.config
             if 'iotronic' not in self.config:
                 self.config = {"iotronic": {"extra": {}}}
-            if 'node' not in self.config['iotronic']:
-                self.config['iotronic']['node'] = {}
-            self.config['iotronic']['node'] = node.as_dict()
-            self.config['iotronic']['node']['created_at'] = \
-                node._attr_to_primitive('created_at')
-            self.config['iotronic']['node']['updated_at'] = \
-                node._attr_to_primitive('updated_at')
+            if 'board' not in self.config['iotronic']:
+                self.config['iotronic']['board'] = {}
+            self.config['iotronic']['board'] = board.as_dict()
+            self.config['iotronic']['board']['created_at'] = \
+                board._attr_to_primitive('created_at')
+            self.config['iotronic']['board']['updated_at'] = \
+                board._attr_to_primitive('updated_at')
 
             try:
-                del self.config['iotronic']['node']['config']
+                del self.config['iotronic']['board']['config']
             except Exception:
                 pass
 
@@ -72,6 +72,6 @@ class Provisioner(object):
 
     def conf_clean(self):
         self.conf_registration_agent()
-        if 'node' not in self.config['iotronic']:
-            self.config['iotronic']['node'] = {}
-        self.config['iotronic']['node']['token'] = "<REGISTRATION-TOKEN>"
+        if 'board' not in self.config['iotronic']:
+            self.config['iotronic']['board'] = {}
+        self.config['iotronic']['board']['token'] = "<REGISTRATION-TOKEN>"

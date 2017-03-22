@@ -56,11 +56,11 @@ DEFAULT CHARACTER SET = utf8;
 
 
 -- -----------------------------------------------------
--- Table `iotronic`.`nodes`
+-- Table `iotronic`.`boards`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `iotronic`.`nodes` ;
+DROP TABLE IF EXISTS `iotronic`.`boards` ;
 
-CREATE TABLE IF NOT EXISTS `iotronic`.`nodes` (
+CREATE TABLE IF NOT EXISTS `iotronic`.`boards` (
   `created_at` DATETIME NULL DEFAULT NULL,
   `updated_at` DATETIME NULL DEFAULT NULL,
   `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -95,12 +95,12 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`locations` (
   `longitude` VARCHAR(18) NULL DEFAULT NULL,
   `latitude` VARCHAR(18) NULL DEFAULT NULL,
   `altitude` VARCHAR(18) NULL DEFAULT NULL,
-  `node_id` INT(11) NOT NULL,
+  `board_id` INT(11) NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `node_id` (`node_id` ASC),
+  INDEX `board_id` (`board_id` ASC),
   CONSTRAINT `location_ibfk_1`
-    FOREIGN KEY (`node_id`)
-    REFERENCES `iotronic`.`nodes` (`id`)
+    FOREIGN KEY (`board_id`)
+    REFERENCES `iotronic`.`boards` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
@@ -119,14 +119,14 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`sessions` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `valid` TINYINT(1) NOT NULL DEFAULT '1',
   `session_id` VARCHAR(18) NOT NULL,
-  `node_uuid` VARCHAR(36) NOT NULL,
-  `node_id` INT(11) NOT NULL,
+  `board_uuid` VARCHAR(36) NOT NULL,
+  `board_id` INT(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `session_id` (`session_id` ASC),
-  INDEX `session_node_id` (`node_id` ASC),
-  CONSTRAINT `session_node_id`
-    FOREIGN KEY (`node_id`)
-    REFERENCES `iotronic`.`nodes` (`id`)
+  INDEX `session_board_id` (`board_id` ASC),
+  CONSTRAINT `session_board_id`
+    FOREIGN KEY (`board_id`)
+    REFERENCES `iotronic`.`boards` (`id`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
@@ -145,7 +145,8 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`plugins` (
   `uuid` VARCHAR(36) NOT NULL,
   `name` VARCHAR(255) NULL DEFAULT NULL,
   `public` TINYINT(1) NOT NULL DEFAULT '0',
-  `config` TEXT NULL DEFAULT NULL,
+  `code` TEXT NULL DEFAULT NULL,
+  `callable` TINYINT(1) NOT NULL,
   `extra` TEXT NULL DEFAULT NULL,
   `owner` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`id`),
@@ -157,28 +158,27 @@ DEFAULT CHARACTER SET = utf8;
 -- -----------------------------------------------------
 -- Table `iotronic`.`injected_plugins`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `iotronic`.`injected_plugins` ;
+DROP TABLE IF EXISTS `iotronic`.`injection_plugins` ;
 
-CREATE TABLE IF NOT EXISTS `iotronic`.`injected_plugins` (
+CREATE TABLE IF NOT EXISTS `iotronic`.`injection_plugins` (
   `created_at` DATETIME NULL DEFAULT NULL,
   `updated_at` DATETIME NULL DEFAULT NULL,
   `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `node_uuid` VARCHAR(36) NOT NULL,
-  `node_id` INT(11) NOT NULL,
+  `board_uuid` VARCHAR(36) NOT NULL,
   `plugin_uuid` VARCHAR(36) NOT NULL,
-  `plugin_id` INT(11) NOT NULL,
   `status` VARCHAR(15) NOT NULL DEFAULT 'injected',
+  `onboot` TINYINT(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
-  INDEX `node_id` (`node_id` ASC),
-  CONSTRAINT `node_id`
-    FOREIGN KEY (`node_id`)
-    REFERENCES `iotronic`.`nodes` (`id`)
+  INDEX `board_uuid` (`board_uuid` ASC),
+  CONSTRAINT `board_uuid`
+    FOREIGN KEY (`board_uuid`)
+    REFERENCES `iotronic`.`boards` (`uuid`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  INDEX `plugin_id` (`plugin_id` ASC),
-  CONSTRAINT `plugin_id`
-    FOREIGN KEY (`plugin_id`)
-    REFERENCES `iotronic`.`plugins` (`id`)
+  INDEX `plugin_uuid` (`plugin_uuid` ASC),
+  CONSTRAINT `plugin_uuid`
+    FOREIGN KEY (`plugin_uuid`)
+    REFERENCES `iotronic`.`plugins` (`uuid`)
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB
@@ -191,12 +191,19 @@ SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 
--- insert testing nodes
-INSERT INTO `nodes` VALUES
-  ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','node','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
+-- insert testing boards
+INSERT INTO `boards` VALUES
+  ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','laptop-14','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
   ('2017-02-20 10:38:45',NULL,133,'ba1efce9-cad9-4ae1-a5d1-d90a8d203d3b','yunyun','registered','yun22','yun',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
   ('2017-02-20 10:39:08',NULL,134,'65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}');
 INSERT INTO `locations` VALUES
   ('2017-02-20 10:38:26',NULL,6,'2','1','3',132),
   ('2017-02-20 10:38:45',NULL,7,'2','1','3',133),
-  ('2017-02-20 10:39:08',NULL,8,'2','1','3',134)
+  ('2017-02-20 10:39:08',NULL,8,'2','1','3',134);
+INSERT INTO `plugins` VALUES
+    ('2017-02-20 10:38:26',NULL,132,'edff22cd-9148-4ad8-b35b-51dcdb60066e','runner','0','V# Copyright 2017 MDSLAB - University of Messina\u000a# All Rights Reserved.\u000a#\u000a# Licensed under the Apache License, Version 2.0 (the "License"); you may\u000a# not use this file except in compliance with the License. You may obtain\u000a# a copy of the License at\u000a#\u000a# http://www.apache.org/licenses/LICENSE-2.0\u000a#\u000a# Unless required by applicable law or agreed to in writing, software\u000a# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT\u000a# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\u000a# License for the specific language governing permissions and limitations\u000a# under the License.\u000a\u000afrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000aLOG = logging.getLogger(__name__)\u000a\u000a# User imports\u000aimport time\u000a\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a    def __init__(self, name, th_result, plugin_conf=None):\u000a        super(Worker, self).__init__(name, th_result, plugin_conf)\u000a\u000a    def run(self):\u000a        LOG.info("Plugin " + self.name + " starting...")\u000a        while(self._is_running):\u000a            print(self.plugin_conf[''message''])\u000a            time.sleep(1) \u000a
+p1
+.',0,'{}','eee383360cc14c44b9bf21e1e003a4f3')
+  ('2017-02-20 10:38:26',NULL,133,'edff22cd-9148-4ad8-b35b-c0c80abf1e8a','zero','0','Vfrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000a\u000aLOG = logging.getLogger(__name__)\u000a\u000a\u000a# User imports\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a   def __init__(self, name, is_running):\u000a       super(Worker, self).__init__(name, is_running)\u000a\u000a   def run(self):\u000a       LOG.info("Plugin process completed!")\u000a       #self.Done()
+p1
+.',1,'{}','eee383360cc14c44b9bf21e1e003a4f3');

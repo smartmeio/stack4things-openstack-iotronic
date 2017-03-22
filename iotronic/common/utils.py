@@ -596,7 +596,7 @@ def is_valid_logical_name(hostname):
 
 
 def is_hostname_safe(hostname):
-    """Old check for valid logical node names.
+    """Old check for valid logical board names.
 
     Retained for compatibility with REST API < 1.10.
 

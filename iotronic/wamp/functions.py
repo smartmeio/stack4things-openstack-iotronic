@@ -14,6 +14,7 @@
 #    under the License.
 
 from iotronic.common import rpc
+from iotronic.common import states
 from iotronic.conductor import rpcapi
 from iotronic import objects
 from oslo_config import cfg
@@ -43,15 +44,37 @@ def echo(data):
     return data
 
 
-def node_on_leave(session_id):
-    LOG.debug('A node with %s disconnectd', session_id)
+def board_on_leave(session_id):
+    LOG.debug('A board with %s disconnectd', session_id)
+
     try:
-        old_session = objects.SessionWP({}).get_by_session_id({}, session_id)
+        old_session = objects.SessionWP.get(ctxt, session_id)
         old_session.valid = False
         old_session.save()
         LOG.debug('Session %s deleted', session_id)
     except Exception:
         LOG.debug('session %s not found', session_id)
+
+    board = objects.Board.get_by_uuid(ctxt, old_session.board_uuid)
+    board.status = states.OFFLINE
+    board.save()
+    LOG.debug('Board %s is now  %s', old_session.uuid, states.OFFLINE)
+
+
+def on_board_connect(board_uuid, session_id, msg):
+    if msg == 'connection':
+        try:
+            board = objects.Board.get_by_uuid(ctxt, board_uuid)
+            board.status = states.ONLINE
+            session_data = {'board_id': board.id,
+                            'board_uuid': board.uuid,
+                            'session_id': session_id}
+            session = objects.SessionWP(ctxt, **session_data)
+            session.create()
+            board.save()
+            LOG.debug('Board %s is now  %s', board_uuid, states.ONLINE)
+        except Exception:
+            LOG.debug(Exception.message)
 
 
 def connection(uuid, session):
@@ -62,5 +85,5 @@ def registration(code, session):
     return c.registration(ctxt, code, session)
 
 
-def node_on_join(session_id):
-    LOG.debug('A node with %s joined', session_id)
+def board_on_join(session_id):
+    LOG.debug('A board with %s joined', session_id['session'])

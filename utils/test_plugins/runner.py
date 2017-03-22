@@ -1,5 +1,5 @@
 # Copyright 2017 MDSLAB - University of Messina
-# All Rights Reserved.
+#    All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,11 +13,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from iotronic_lightningrod.plugins import Plugin
 
-# from oslo_log import log as logging
+from oslo_log import log as logging
 
-# LOG = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
-OFFLINE = 'offline'
-REGISTERED = 'registered'
-ONLINE = 'online'
+# User imports
+import time
+
+
+class Worker(Plugin.Plugin):
+    def __init__(self, uuid, name, q_result=None, params=None):
+        super(Worker, self).__init__(uuid, name, q_result, params)
+
+    def run(self):
+        LOG.info("Plugin " + self.name + " starting...")
+        LOG.info(self.params)
+
+        while (self._is_running):
+            print(self.params['message'])
+            time.sleep(1)

@@ -65,34 +65,34 @@ def get_patch_value(patch, path):
             return p['value']
 
 
-def allow_node_logical_names():
+def allow_board_logical_names():
     # v1.5 added logical name aliases
     return pecan.request.version.minor >= 5
 
 
-def get_rpc_node(node_ident):
-    """Get the RPC node from the node uuid or logical name.
+def get_rpc_board(board_ident):
+    """Get the RPC board from the board uuid or logical name.
 
-    :param node_ident: the UUID or logical name of a node.
+    :param board_ident: the UUID or logical name of a board.
 
-    :returns: The RPC Node.
+    :returns: The RPC Board.
     :raises: InvalidUuidOrName if the name or uuid provided is not valid.
-    :raises: NodeNotFound if the node is not found.
+    :raises: BoardNotFound if the board is not found.
     """
-    # Check to see if the node_ident is a valid UUID.  If it is, treat it
+    # Check to see if the board_ident is a valid UUID.  If it is, treat it
     # as a UUID.
-    if uuidutils.is_uuid_like(node_ident):
-        return objects.Node.get_by_uuid(pecan.request.context, node_ident)
+    if uuidutils.is_uuid_like(board_ident):
+        return objects.Board.get_by_uuid(pecan.request.context, board_ident)
 
-    # We can refer to nodes by their name, if the client supports it
-    # if allow_node_logical_names():
-    #    if utils.is_hostname_safe(node_ident):
+    # We can refer to boards by their name, if the client supports it
+    # if allow_board_logical_names():
+    #    if utils.is_hostname_safe(board_ident):
     else:
-        return objects.Node.get_by_name(pecan.request.context, node_ident)
+        return objects.Board.get_by_name(pecan.request.context, board_ident)
 
-    raise exception.InvalidUuidOrName(name=node_ident)
+    raise exception.InvalidUuidOrName(name=board_ident)
 
-    raise exception.NodeNotFound(node=node_ident)
+    raise exception.BoardNotFound(board=board_ident)
 
 
 def get_rpc_plugin(plugin_ident):
@@ -120,12 +120,12 @@ def get_rpc_plugin(plugin_ident):
     raise exception.PluginNotFound(plugin=plugin_ident)
 
 
-def is_valid_node_name(name):
-    """Determine if the provided name is a valid node name.
+def is_valid_board_name(name):
+    """Determine if the provided name is a valid board name.
 
-    Check to see that the provided node name is valid, and isn't a UUID.
+    Check to see that the provided board name is valid, and isn't a UUID.
 
-    :param: name: the node name to check.
+    :param: name: the board name to check.
     :returns: True if the name is valid, False otherwise.
     """
     return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
@@ -134,9 +134,9 @@ def is_valid_node_name(name):
 def is_valid_name(name):
     """Determine if the provided name is a valid name.
 
-    Check to see that the provided node name isn't a UUID.
+    Check to see that the provided board name isn't a UUID.
 
-    :param: name: the node name to check.
+    :param: name: the board name to check.
     :returns: True if the name is valid, False otherwise.
     """
     return not uuidutils.is_uuid_like(name)

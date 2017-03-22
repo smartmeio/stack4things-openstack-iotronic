@@ -70,21 +70,21 @@ default_policies = [
 #             All of these may be overridden by configuration, but we can
 #             depend on their existence throughout the code.
 
-node_policies = [
-    policy.RuleDefault('iot:node:get',
+board_policies = [
+    policy.RuleDefault('iot:board:get',
                        'rule:is_admin or rule:is_iot_member',
-                       description='Retrieve Node records'),
-    policy.RuleDefault('iot:node:create',
+                       description='Retrieve Board records'),
+    policy.RuleDefault('iot:board:create',
                        'rule:is_admin_iot_project',
-                       description='Create Node records'),
-    policy.RuleDefault('iot:node:delete',
+                       description='Create Board records'),
+    policy.RuleDefault('iot:board:delete',
                        'rule:is_admin or rule:is_admin_iot_project '
                        'or rule:is_manager_iot_project',
-                       description='Delete Node records'),
-    policy.RuleDefault('iot:node:update',
+                       description='Delete Board records'),
+    policy.RuleDefault('iot:board:update',
                        'rule:is_admin or rule:is_admin_iot_project '
                        'or rule:is_manager_iot_project',
-                       description='Update Node records'),
+                       description='Update Board records'),
 
 ]
 
@@ -111,7 +111,7 @@ plugin_policies = [
 
 def list_policies():
     policies = (default_policies
-                + node_policies
+                + board_policies
                 + plugin_policies
                 )
     return policies

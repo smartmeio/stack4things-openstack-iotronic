@@ -26,7 +26,7 @@ from pecan import rest
 import wsme
 from wsme import types as wtypes
 
-_DEFAULT_RETURN_FIELDS = ('name', 'uuid', 'owner', 'public')
+_DEFAULT_RETURN_FIELDS = ('name', 'uuid', 'owner', 'public', 'callable')
 
 
 class Plugin(base.APIBase):
@@ -35,9 +35,10 @@ class Plugin(base.APIBase):
     """
     uuid = types.uuid
     name = wsme.wsattr(wtypes.text)
-    config = wsme.wsattr(wtypes.text)
+    code = wsme.wsattr(wtypes.text)
     public = types.boolean
     owner = types.uuid
+    callable = types.boolean
     links = wsme.wsattr([link.Link], readonly=True)
     extra = types.jsontype
 
@@ -253,24 +254,6 @@ class PluginsController(rest.RestController):
         updated_plugin = pecan.request.rpcapi.update_plugin(
             pecan.request.context, plugin)
         return Plugin.convert_with_links(updated_plugin)
-
-    @expose.expose(None, types.uuid_or_name, types.uuid_or_name,
-                   status_code=200)
-    def put(self, plugin_ident, node_ident):
-        """inject a plugin into a node.
-
-        :param plugin_ident: UUID or logical name of a plugin.
-        :param node_ident: UUID or logical name of a node.
-        """
-
-        context = pecan.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('iot:plugin:inject', cdict, cdict)
-
-        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
-        rpc_node = api_utils.get_rpc_node(node_ident)
-        pecan.request.rpcapi.inject_plugin(pecan.request.context,
-                                           rpc_plugin.uuid, rpc_node.uuid)
 
     @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
                    wtypes.text, types.listtype, types.boolean, types.boolean)

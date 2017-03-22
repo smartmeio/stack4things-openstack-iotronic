@@ -22,7 +22,7 @@ from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
 
 
-class Node(base.IotronicObject):
+class Board(base.IotronicObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 
@@ -44,75 +44,75 @@ class Node(base.IotronicObject):
     }
 
     @staticmethod
-    def _from_db_object(node, db_node):
+    def _from_db_object(board, db_board):
         """Converts a database entity to a formal object."""
-        for field in node.fields:
-            node[field] = db_node[field]
-        node.obj_reset_changes()
-        return node
+        for field in board.fields:
+            board[field] = db_board[field]
+        board.obj_reset_changes()
+        return board
 
     @base.remotable_classmethod
-    def get(cls, context, node_id):
-        """Find a node based on its id or uuid and return a Node object.
+    def get(cls, context, board_id):
+        """Find a board based on its id or uuid and return a Board object.
 
-        :param node_id: the id *or* uuid of a node.
-        :returns: a :class:`Node` object.
+        :param board_id: the id *or* uuid of a board.
+        :returns: a :class:`Board` object.
         """
-        if strutils.is_int_like(node_id):
-            return cls.get_by_id(context, node_id)
-        elif uuidutils.is_uuid_like(node_id):
-            return cls.get_by_uuid(context, node_id)
+        if strutils.is_int_like(board_id):
+            return cls.get_by_id(context, board_id)
+        elif uuidutils.is_uuid_like(board_id):
+            return cls.get_by_uuid(context, board_id)
         else:
-            raise exception.InvalidIdentity(identity=node_id)
+            raise exception.InvalidIdentity(identity=board_id)
 
     @base.remotable_classmethod
-    def get_by_id(cls, context, node_id):
-        """Find a node based on its integer id and return a Node object.
+    def get_by_id(cls, context, board_id):
+        """Find a board based on its integer id and return a Board object.
 
-        :param node_id: the id of a node.
-        :returns: a :class:`Node` object.
+        :param board_id: the id of a board.
+        :returns: a :class:`Board` object.
         """
-        db_node = cls.dbapi.get_node_by_id(node_id)
-        node = Node._from_db_object(cls(context), db_node)
-        return node
+        db_board = cls.dbapi.get_board_by_id(board_id)
+        board = Board._from_db_object(cls(context), db_board)
+        return board
 
     @base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a node based on uuid and return a Node object.
+        """Find a board based on uuid and return a Board object.
 
-        :param uuid: the uuid of a node.
-        :returns: a :class:`Node` object.
+        :param uuid: the uuid of a board.
+        :returns: a :class:`Board` object.
         """
-        db_node = cls.dbapi.get_node_by_uuid(uuid)
-        node = Node._from_db_object(cls(context), db_node)
-        return node
+        db_board = cls.dbapi.get_board_by_uuid(uuid)
+        board = Board._from_db_object(cls(context), db_board)
+        return board
 
     @base.remotable_classmethod
     def get_by_code(cls, context, code):
-        """Find a node based on name and return a Node object.
+        """Find a board based on name and return a Board object.
 
-        :param name: the logical name of a node.
-        :returns: a :class:`Node` object.
+        :param name: the logical name of a board.
+        :returns: a :class:`Board` object.
         """
-        db_node = cls.dbapi.get_node_by_code(code)
-        node = Node._from_db_object(cls(context), db_node)
-        return node
+        db_board = cls.dbapi.get_board_by_code(code)
+        board = Board._from_db_object(cls(context), db_board)
+        return board
 
     @base.remotable_classmethod
     def get_by_name(cls, context, name):
-        """Find a node based on name and return a Node object.
+        """Find a board based on name and return a Board object.
 
-        :param name: the logical name of a node.
-        :returns: a :class:`Node` object.
+        :param name: the logical name of a board.
+        :returns: a :class:`Board` object.
         """
-        db_node = cls.dbapi.get_node_by_name(name)
-        node = Node._from_db_object(cls(context), db_node)
-        return node
+        db_board = cls.dbapi.get_board_by_name(name)
+        board = Board._from_db_object(cls(context), db_board)
+        return board
 
     @base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
-        """Return a list of Node objects.
+        """Return a list of Board objects.
 
         :param context: Security context.
         :param limit: maximum number of resources to return in a single result.
@@ -120,97 +120,97 @@ class Node(base.IotronicObject):
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
         :param filters: Filters to apply.
-        :returns: a list of :class:`Node` object.
+        :returns: a list of :class:`Board` object.
 
         """
-        db_nodes = cls.dbapi.get_node_list(filters=filters, limit=limit,
-                                           marker=marker, sort_key=sort_key,
-                                           sort_dir=sort_dir)
-        return [Node._from_db_object(cls(context), obj) for obj in db_nodes]
+        db_boards = cls.dbapi.get_board_list(filters=filters, limit=limit,
+                                             marker=marker, sort_key=sort_key,
+                                             sort_dir=sort_dir)
+        return [Board._from_db_object(cls(context), obj) for obj in db_boards]
 
     @base.remotable_classmethod
-    def reserve(cls, context, tag, node_id):
-        """Get and reserve a node.
+    def reserve(cls, context, tag, board_id):
+        """Get and reserve a board.
 
         To prevent other ManagerServices from manipulating the given
-        Node while a Task is performed, mark it reserved by this host.
+        Board while a Task is performed, mark it reserved by this host.
 
         :param context: Security context.
         :param tag: A string uniquely identifying the reservation holder.
-        :param node_id: A node id or uuid.
-        :raises: NodeNotFound if the node is not found.
-        :returns: a :class:`Node` object.
+        :param board_id: A board id or uuid.
+        :raises: BoardNotFound if the board is not found.
+        :returns: a :class:`Board` object.
 
         """
-        db_node = cls.dbapi.reserve_node(tag, node_id)
-        node = Node._from_db_object(cls(context), db_node)
-        return node
+        db_board = cls.dbapi.reserve_board(tag, board_id)
+        board = Board._from_db_object(cls(context), db_board)
+        return board
 
     @base.remotable_classmethod
-    def release(cls, context, tag, node_id):
-        """Release the reservation on a node.
+    def release(cls, context, tag, board_id):
+        """Release the reservation on a board.
 
         :param context: Security context.
         :param tag: A string uniquely identifying the reservation holder.
-        :param node_id: A node id or uuid.
-        :raises: NodeNotFound if the node is not found.
+        :param board_id: A board id or uuid.
+        :raises: BoardNotFound if the board is not found.
 
         """
-        cls.dbapi.release_node(tag, node_id)
+        cls.dbapi.release_board(tag, board_id)
 
     @base.remotable
     def create(self, context=None):
-        """Create a Node record in the DB.
+        """Create a Board record in the DB.
 
         Column-wise updates will be made based on the result of
         self.what_changed(). If target_power_state is provided,
         it will be checked against the in-database copy of the
-        node before updates are made.
+        board before updates are made.
 
         :param context: Security context. NOTE: This should only
                         be used internally by the indirection_api.
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context)
+                        object, e.g.: Board(context)
 
         """
         values = self.obj_get_changes()
-        db_node = self.dbapi.create_node(values)
-        self._from_db_object(self, db_node)
+        db_board = self.dbapi.create_board(values)
+        self._from_db_object(self, db_board)
 
     @base.remotable
     def destroy(self, context=None):
-        """Delete the Node from the DB.
+        """Delete the Board from the DB.
 
         :param context: Security context. NOTE: This should only
                         be used internally by the indirection_api.
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context)
+                        object, e.g.: Board(context)
         """
-        self.dbapi.destroy_node(self.uuid)
+        self.dbapi.destroy_board(self.uuid)
         self.obj_reset_changes()
 
     @base.remotable
     def save(self, context=None):
-        """Save updates to this Node.
+        """Save updates to this Board.
 
         Column-wise updates will be made based on the result of
         self.what_changed(). If target_power_state is provided,
         it will be checked against the in-database copy of the
-        node before updates are made.
+        board before updates are made.
 
         :param context: Security context. NOTE: This should only
                         be used internally by the indirection_api.
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context)
+                        object, e.g.: Board(context)
         """
         updates = self.obj_get_changes()
-        self.dbapi.update_node(self.uuid, updates)
+        self.dbapi.update_board(self.uuid, updates)
         self.obj_reset_changes()
 
     @base.remotable
@@ -222,7 +222,7 @@ class Node(base.IotronicObject):
                         Unfortunately, RPC requires context as the first
                         argument, even though we don't use it.
                         A context should be set when instantiating the
-                        object, e.g.: Node(context)
+                        object, e.g.: Board(context)
         """
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:

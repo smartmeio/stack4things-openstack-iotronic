@@ -29,7 +29,7 @@ class Location(base.IotronicObject):
 
     fields = {
         'id': int,
-        'node_id': obj_utils.int_or_none,
+        'board_id': obj_utils.int_or_none,
         'longitude': obj_utils.str_or_none,
         'latitude': obj_utils.str_or_none,
         'altitude': obj_utils.str_or_none,
@@ -109,12 +109,12 @@ class Location(base.IotronicObject):
         return Location._from_db_object_list(db_locations, cls, context)
 
     @base.remotable_classmethod
-    def list_by_node_uuid(cls, context, node_uuid, limit=None, marker=None,
-                          sort_key=None, sort_dir=None):
-        """Return a list of Location objects associated with a given node ID.
+    def list_by_board_uuid(cls, context, board_uuid, limit=None, marker=None,
+                           sort_key=None, sort_dir=None):
+        """Return a list of Location objects associated with a given board ID.
 
         :param context: Security context.
-        :param node_id: the ID of the node.
+        :param board_id: the ID of the board.
         :param limit: maximum number of resources to return in a single result.
         :param marker: pagination marker for large data sets.
         :param sort_key: column to sort results by.
@@ -122,20 +122,21 @@ class Location(base.IotronicObject):
         :returns: a list of :class:`Location` object.
 
         """
-        node_id = cls.dbapi.get_node_id_by_uuid(node_uuid)[0]
-        db_locations = cls.dbapi.get_locations_by_node_id(node_id, limit=limit,
-                                                          marker=marker,
-                                                          sort_key=sort_key,
-                                                          sort_dir=sort_dir)
-        return Location._from_db_object_list(db_locations, cls, context)
+        board_id = cls.dbapi.get_board_id_by_uuid(board_uuid)[0]
+        db_loc = cls.dbapi.get_locations_by_board_id(board_id,
+                                                     limit=limit,
+                                                     marker=marker,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
+        return Location._from_db_object_list(db_loc, cls, context)
 
     @base.remotable_classmethod
-    def list_by_node_id(cls, context, node_id, limit=None, marker=None,
-                        sort_key=None, sort_dir=None):
-        """Return a list of Location objects associated with a given node ID.
+    def list_by_board_id(cls, context, board_id, limit=None, marker=None,
+                         sort_key=None, sort_dir=None):
+        """Return a list of Location objects associated with a given board ID.
 
         :param context: Security context.
-        :param node_id: the ID of the node.
+        :param board_id: the ID of the board.
         :param limit: maximum number of resources to return in a single result.
         :param marker: pagination marker for large data sets.
         :param sort_key: column to sort results by.
@@ -143,11 +144,12 @@ class Location(base.IotronicObject):
         :returns: a list of :class:`Location` object.
 
         """
-        db_locations = cls.dbapi.get_locations_by_node_id(node_id, limit=limit,
-                                                          marker=marker,
-                                                          sort_key=sort_key,
-                                                          sort_dir=sort_dir)
-        return Location._from_db_object_list(db_locations, cls, context)
+        db_loc = cls.dbapi.get_locations_by_board_id(board_id,
+                                                     limit=limit,
+                                                     marker=marker,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
+        return Location._from_db_object_list(db_loc, cls, context)
 
     @base.remotable
     def create(self, context=None):

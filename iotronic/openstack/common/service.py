@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Generic Node base class for all workers that run on hosts."""
+"""Generic Board base class for all workers that run on hosts."""
 
 import errno
 import os

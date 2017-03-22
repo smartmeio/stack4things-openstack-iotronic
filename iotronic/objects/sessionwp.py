@@ -18,6 +18,7 @@ from iotronic.db import api as dbapi
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
 from oslo_utils import strutils
+from oslo_utils import uuidutils
 
 
 class SessionWP(base.IotronicObject):
@@ -27,9 +28,9 @@ class SessionWP(base.IotronicObject):
 
     fields = {
         'id': int,
-        'node_uuid': obj_utils.str_or_none,
+        'board_uuid': obj_utils.str_or_none,
         'session_id': obj_utils.str_or_none,
-        'node_id': obj_utils.int_or_none,
+        'board_id': obj_utils.int_or_none,
         'valid': bool,
     }
 
@@ -51,16 +52,18 @@ class SessionWP(base.IotronicObject):
                 obj) for obj in db_objects]
 
     @base.remotable_classmethod
-    def get(cls, context, session_id):
+    def get(cls, context, session_or_board_uuid):
         """Find a session based on its id or uuid and return a SessionWP object.
 
         :param session_id: the id *or* uuid of a session.
         :returns: a :class:`SessionWP` object.
         """
-        if strutils.is_int_like(session_id):
-            return cls.get_by_id(context, session_id)
+        if strutils.is_int_like(session_or_board_uuid):
+            return cls.get_by_id(context, session_or_board_uuid)
+        elif uuidutils.is_uuid_like(session_or_board_uuid):
+            return cls.get_by_uuid(context, session_or_board_uuid)
         else:
-            raise exception.InvalidIdentity(identity=session_id)
+            raise exception.InvalidIdentity(identity=session_or_board_uuid)
 
     @base.remotable_classmethod
     def get_by_id(cls, context, ses_id):
@@ -74,14 +77,15 @@ class SessionWP(base.IotronicObject):
         return session
 
     @base.remotable_classmethod
-    def get_session_by_node_uuid(cls, context, node_uuid, valid=True):
+    def get_session_by_board_uuid(cls, context, board_uuid, valid=True):
         """Find a session based on uuid and return a :class:`SessionWP` object.
 
-        :param node_uuid: the uuid of a node.
+        :param board_uuid: the uuid of a board.
         :param context: Security context
         :returns: a :class:`SessionWP` object.
         """
-        db_session = cls.dbapi.get_session_by_node_uuid(node_uuid, valid)
+
+        db_session = cls.dbapi.get_session_by_board_uuid(board_uuid, valid)
         session = SessionWP._from_db_object(cls(context), db_session)
         return session
 
@@ -174,4 +178,4 @@ class SessionWP(base.IotronicObject):
             if (hasattr(
                     self, base.get_attrname(field))
                     and self[field] != current[field]):
-                self[field] = current[field]
+                    self[field] = current[field]

@@ -22,7 +22,6 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 
-
 import random
 
 LOG = logging.getLogger(__name__)
@@ -55,131 +54,138 @@ class ConductorEndpoint(object):
         LOG.debug('Received registration from %s with session %s',
                   uuid, session_num)
         try:
-            node = objects.Node.get_by_uuid(ctx, uuid)
+            board = objects.Board.get_by_uuid(ctx, uuid)
         except Exception as exc:
-            msg = exc.message % {'node': uuid}
+            msg = exc.message % {'board': uuid}
             LOG.error(msg)
-            wmessage = wm.WampError(msg).serialize()
-            return wmessage
+            return wm.WampError(msg).serialize()
 
         try:
             old_ses = objects.SessionWP(ctx)
-            old_ses = old_ses.get_session_by_node_uuid(ctx, node.uuid,
-                                                       valid=True)
+            old_ses = old_ses.get_session_by_board_uuid(ctx, board.uuid,
+                                                        valid=True)
             old_ses.valid = False
             old_ses.save()
 
         except Exception:
-            LOG.debug('valid session for %s not found', node.uuid)
+            LOG.debug('valid session for %s not found', board.uuid)
 
-        node.status = states.REGISTERED
-        node.save()
-
-        session = objects.SessionWP(ctx)
-        session.node_id = node.id
-        session.node_uuid = node.uuid
-        session.session_id = session_num
+        session_data = {'board_id': board.id,
+                        'board_uuid': board.uuid,
+                        'session_id': session_num}
+        session = objects.SessionWP(ctx, **session_data)
         session.create()
-        session.save()
+        board.status = states.ONLINE
+        board.save()
+        LOG.debug('Board %s is now  %s', board.uuid, states.ONLINE)
         return wm.WampSuccess('').serialize()
 
     def registration(self, ctx, code, session_num):
         LOG.debug('Received registration from %s with session %s',
                   code, session_num)
         try:
-            node = objects.Node.get_by_code(ctx, code)
+            board = objects.Board.get_by_code(ctx, code)
+
         except Exception as exc:
-            msg = exc.message % {'node': code}
+            msg = exc.message % {'board': code}
             LOG.error(msg)
-            wmessage = wm.WampError(msg).serialize()
-            return wmessage
+            return wm.WampError(msg).serialize()
 
         try:
             old_ses = objects.SessionWP(ctx)
-            old_ses = old_ses.get_session_by_node_uuid(ctx, node.uuid,
-                                                       valid=True)
+            old_ses = old_ses.get_session_by_board_uuid(ctx, board.uuid,
+                                                        valid=True)
             old_ses.valid = False
             old_ses.save()
 
         except Exception:
-            LOG.debug('valid session for %s not found', node.uuid)
+            LOG.debug('valid session for %s not found', board.uuid)
 
-        session = objects.SessionWP(ctx)
-        session.node_id = node.id
-        session.node_uuid = node.uuid
-        session.session_id = session_num
+        session_data = {'board_id': board.id,
+                        'board_uuid': board.uuid,
+                        'session_id': session_num}
+        session = objects.SessionWP(ctx, **session_data)
         session.create()
-        session.save()
 
-        node.agent = get_best_agent(ctx)
-        agent = objects.WampAgent.get_by_hostname(ctx, node.agent)
+        board.agent = get_best_agent(ctx)
+        agent = objects.WampAgent.get_by_hostname(ctx, board.agent)
 
-        prov = Provisioner(node)
+        prov = Provisioner(board)
         prov.conf_registration_agent(self.ragent.wsurl)
 
         prov.conf_main_agent(agent.wsurl)
-        node.config = prov.get_config()
-        node.save()
+        board.config = prov.get_config()
+        board.status = states.OFFLINE
+        board.save()
 
-        LOG.debug('sending this conf %s', node.config)
+        LOG.debug('sending this conf %s', board.config)
 
-        wmessage = wm.WampSuccess(node.config)
+        wmessage = wm.WampSuccess(board.config)
         return wmessage.serialize()
 
-    def destroy_node(self, ctx, node_id):
-        LOG.info('Destroying node with id %s',
-                 node_id)
-        node = objects.Node.get_by_uuid(ctx, node_id)
+    def destroy_board(self, ctx, board_id):
+        LOG.info('Destroying board with id %s',
+                 board_id)
+        board = objects.Board.get_by_uuid(ctx, board_id)
 
         prov = Provisioner()
         prov.conf_clean()
         p = prov.get_config()
         LOG.debug('sending this conf %s', p)
         try:
-            self.execute_on_node(ctx, node_id, 'destroyNode', (p,))
+            result = self.execute_on_board(ctx, board_id, 'destroyBoard', (p,))
         except Exception:
-            LOG.error('cannot execute remote destroynode on %s. '
-                      'Maybe it is OFFLINE', node_id)
+            LOG.error('cannot execute remote destroyboard on %s. '
+                      'Maybe it is OFFLINE', board_id)
 
-        node.destroy()
-
+        board.destroy()
+        if result:
+            LOG.debug(result)
+            return result
         return
 
-    def update_node(self, ctx, node_obj):
-        node = serializer.deserialize_entity(ctx, node_obj)
-        LOG.debug('Updating node %s', node.name)
-        node.save()
-        return serializer.serialize_entity(ctx, node)
+    def update_board(self, ctx, board_obj):
+        board = serializer.deserialize_entity(ctx, board_obj)
+        LOG.debug('Updating board %s', board.name)
+        board.save()
+        return serializer.serialize_entity(ctx, board)
 
-    def create_node(self, ctx, node_obj, location_obj):
-        new_node = serializer.deserialize_entity(ctx, node_obj)
-        LOG.debug('Creating node %s',
-                  new_node.name)
+    def create_board(self, ctx, board_obj, location_obj):
+        new_board = serializer.deserialize_entity(ctx, board_obj)
+        LOG.debug('Creating board %s',
+                  new_board.name)
         new_location = serializer.deserialize_entity(ctx, location_obj)
-        new_node.create()
-        new_location.node_id = new_node.id
+        new_board.create()
+        new_location.board_id = new_board.id
         new_location.create()
 
-        return serializer.serialize_entity(ctx, new_node)
+        return serializer.serialize_entity(ctx, new_board)
 
-    def execute_on_node(self, ctx, node_uuid, wamp_rpc_call, wamp_rpc_args):
-        LOG.debug('Executing \"%s\" on the node: %s', wamp_rpc_call, node_uuid)
+    def execute_on_board(self, ctx, board_uuid, wamp_rpc_call, wamp_rpc_args):
+        LOG.debug('Executing \"%s\" on the board: %s',
+                  wamp_rpc_call, board_uuid)
 
-        node = objects.Node.get_by_uuid(ctx, node_uuid)
+        board = objects.Board.get_by_uuid(ctx, board_uuid)
 
         # check the session; it rise an excpetion if session miss
-        # session = objects.SessionWP.get_session_by_node_uuid(node_uuid)
+        objects.SessionWP.get_session_by_board_uuid(ctx, board_uuid)
 
         s4t_topic = 's4t_invoke_wamp'
-        full_topic = node.agent + '.' + s4t_topic
+        full_topic = board.agent + '.' + s4t_topic
 
         self.target.topic = full_topic
 
-        full_wamp_call = 'iotronic.' + node.uuid + "." + wamp_rpc_call
+        full_wamp_call = 'iotronic.' + board.uuid + "." + wamp_rpc_call
 
-        return self.wamp_agent_client.call(ctx, full_topic,
-                                           wamp_rpc_call=full_wamp_call,
-                                           data=wamp_rpc_args)
+        res = self.wamp_agent_client.call(ctx, full_topic,
+                                          wamp_rpc_call=full_wamp_call,
+                                          data=wamp_rpc_args)
+        res = wm.deserialize(res)
+
+        if res.result == wm.SUCCESS:
+            return res.message
+        elif res.result == wm.ERROR:
+            raise Exception
 
     def destroy_plugin(self, ctx, plugin_id):
         LOG.info('Destroying plugin with id %s',
@@ -198,19 +204,80 @@ class ConductorEndpoint(object):
         new_plugin = serializer.deserialize_entity(ctx, plugin_obj)
         LOG.debug('Creating plugin %s',
                   new_plugin.name)
-        new_plugin.config = cpickle.dumps(new_plugin.config, 0)
+        new_plugin.code = cpickle.dumps(new_plugin.code, 0)
         new_plugin.create()
         return serializer.serialize_entity(ctx, new_plugin)
 
-    def inject_plugin(self, ctx, plugin_uuid, node_uuid):
-        LOG.info('Injecting plugin with id %s into the node %s',
-                 plugin_uuid, node_uuid)
+    def inject_plugin(self, ctx, plugin_uuid, board_uuid, onboot):
+        LOG.info('Injecting plugin with id %s into the board %s',
+                 plugin_uuid, board_uuid)
+
+        plugin = objects.Plugin.get(ctx, plugin_uuid)
+
+        result = self.execute_on_board(ctx,
+                                       board_uuid,
+                                       'PluginInject',
+                                       (plugin, onboot))
+
+        injection = None
+        try:
+            injection = objects.InjectionPlugin.get(ctx,
+                                                    board_uuid,
+                                                    plugin_uuid)
+        except Exception:
+            pass
+        if injection:
+            injection.status = 'updated'
+            injection.save()
+        else:
+            inj_data = {
+                'board_uuid': board_uuid,
+                'plugin_uuid': plugin_uuid,
+                'onboot': onboot,
+                'status': 'injected'
+            }
+            injection = objects.InjectionPlugin(ctx, **inj_data)
+            injection.create()
+
+        LOG.debug(result)
+        return result
+
+    def remove_plugin(self, ctx, plugin_uuid, board_uuid):
+        LOG.info('Removing plugin with id %s into the board %s',
+                 plugin_uuid, board_uuid)
+
         plugin = objects.Plugin.get_by_uuid(ctx, plugin_uuid)
 
+        injection = objects.InjectionPlugin.get(ctx, board_uuid, plugin_uuid)
+
         try:
-            self.execute_on_node(ctx, node_uuid, 'PluginInject',
-                                 (plugin.name, plugin.config))
+            result = self.execute_on_board(ctx, board_uuid, 'PluginRemove',
+                                           (plugin.uuid,))
         except Exception:
-            LOG.error('cannot execute remote injection on %s. '
-                      'Maybe it is OFFLINE', node_uuid)
-        return
+            LOG.error('cannot execute a plugin remove on %s. ', Exception)
+            return Exception
+
+        LOG.debug(result)
+        injection.destroy()
+        return result
+
+    def action_plugin(self, ctx, plugin_uuid, board_uuid, action, params):
+        LOG.info('Calling plugin with id %s into the board %s',
+                 plugin_uuid, board_uuid)
+        plugin = objects.Plugin.get(ctx, plugin_uuid)
+
+        objects.plugin.is_valid_action(action)
+
+        try:
+            if objects.plugin.want_params(action):
+                result = self.execute_on_board(ctx, board_uuid, action,
+                                               (plugin.uuid, params))
+            else:
+                result = self.execute_on_board(ctx, board_uuid, action,
+                                               (plugin.uuid,))
+        except Exception:
+            LOG.error('cannot execute a plugin remove on %s. ', Exception)
+            return Exception
+
+        LOG.debug(result)
+        return result

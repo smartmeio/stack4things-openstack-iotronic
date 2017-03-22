@@ -46,14 +46,14 @@ class ConductorAPI(object):
         """Test
 
         :param context: request context.
-        :param data: node id or uuid.
+        :param data: board id or uuid.
         :param topic: RPC topic. Defaults to self.topic.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'echo', data=data)
 
     def registration(self, context, code, session_num, topic=None):
-        """Registration of a node.
+        """Registration of a board.
 
         :param context: request context.
         :param code: token used for the first registration
@@ -65,10 +65,10 @@ class ConductorAPI(object):
                           code=code, session_num=session_num)
 
     def connection(self, context, uuid, session_num, topic=None):
-        """Connection of a node.
+        """Connection of a board.
 
         :param context: request context.
-        :param uuid: uuid node
+        :param uuid: uuid board
         :param session_num: wamp session number
         :param topic: RPC topic. Defaults to self.topic.
         """
@@ -76,54 +76,55 @@ class ConductorAPI(object):
         return cctxt.call(context, 'connection',
                           uuid=uuid, session_num=session_num)
 
-    def create_node(self, context, node_obj, location_obj, topic=None):
-        """Add a node on the cloud
+    def create_board(self, context, board_obj, location_obj, topic=None):
+        """Add a board on the cloud
 
         :param context: request context.
-        :param node_obj: a changed (but not saved) node object.
+        :param board_obj: a changed (but not saved) board object.
         :param topic: RPC topic. Defaults to self.topic.
-        :returns: created node object
+        :returns: created board object
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
-        return cctxt.call(context, 'create_node',
-                          node_obj=node_obj, location_obj=location_obj)
+        return cctxt.call(context, 'create_board',
+                          board_obj=board_obj, location_obj=location_obj)
 
-    def update_node(self, context, node_obj, topic=None):
-        """Synchronously, have a conductor update the node's information.
+    def update_board(self, context, board_obj, topic=None):
+        """Synchronously, have a conductor update the board's information.
 
-        Update the node's information in the database and return a node object.
+        Update the board's information in the database and return
+        a board object.
 
         Note that power_state should not be passed via this method.
-        Use change_node_power_state for initiating driver actions.
+        Use change_board_power_state for initiating driver actions.
 
         :param context: request context.
-        :param node_obj: a changed (but not saved) node object.
+        :param board_obj: a changed (but not saved) board object.
         :param topic: RPC topic. Defaults to self.topic.
-        :returns: updated node object, including all fields.
+        :returns: updated board object, including all fields.
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
-        return cctxt.call(context, 'update_node', node_obj=node_obj)
+        return cctxt.call(context, 'update_board', board_obj=board_obj)
 
-    def destroy_node(self, context, node_id, topic=None):
-        """Delete a node.
+    def destroy_board(self, context, board_id, topic=None):
+        """Delete a board.
 
         :param context: request context.
-        :param node_id: node id or uuid.
-        :raises: NodeLocked if node is locked by another conductor.
-        :raises: NodeAssociated if the node contains an instance
+        :param board_id: board id or uuid.
+        :raises: BoardLocked if board is locked by another conductor.
+        :raises: BoardAssociated if the board contains an instance
             associated with it.
-        :raises: InvalidState if the node is in the wrong provision
+        :raises: InvalidState if the board is in the wrong provision
             state to perform deletion.
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
-        return cctxt.call(context, 'destroy_node', node_id=node_id)
+        return cctxt.call(context, 'destroy_board', board_id=board_id)
 
-    def execute_on_node(self, context, node_uuid, wamp_rpc_call,
-                        wamp_rpc_args=None, topic=None):
+    def execute_on_board(self, context, board_uuid, wamp_rpc_call,
+                         wamp_rpc_args=None, topic=None):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
-        return cctxt.call(context, 'execute_on_node', node_uuid=node_uuid,
+        return cctxt.call(context, 'execute_on_board', board_uuid=board_uuid,
                           wamp_rpc_call=wamp_rpc_call,
                           wamp_rpc_args=wamp_rpc_args)
 
@@ -169,14 +170,40 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'destroy_plugin', plugin_id=plugin_id)
 
-    def inject_plugin(self, context, plugin_uuid, node_uuid, topic=None):
-        """inject a plugin into a node.
+    def inject_plugin(self, context, plugin_uuid,
+                      board_uuid, onboot=False, topic=None):
+        """inject a plugin into a board.
 
         :param context: request context.
         :param plugin_uuid: plugin id or uuid.
-        :param ndoe_uuid: node id or uuid.
+        :param board_uuid: board id or uuid.
 
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'inject_plugin', plugin_uuid=plugin_uuid,
-                          node_uuid=node_uuid)
+                          board_uuid=board_uuid, onboot=onboot)
+
+    def remove_plugin(self, context, plugin_uuid, board_uuid, topic=None):
+        """inject a plugin into a board.
+
+        :param context: request context.
+        :param plugin_uuid: plugin id or uuid.
+        :param board_uuid: board id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'remove_plugin', plugin_uuid=plugin_uuid,
+                          board_uuid=board_uuid)
+
+    def action_plugin(self, context, plugin_uuid,
+                      board_uuid, action, params=None, topic=None):
+        """Action on a plugin into a board.
+
+        :param context: request context.
+        :param plugin_uuid: plugin id or uuid.
+        :param board_uuid: board id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'action_plugin', plugin_uuid=plugin_uuid,
+                          board_uuid=board_uuid, action=action, params=params)

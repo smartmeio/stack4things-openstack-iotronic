@@ -106,8 +106,9 @@ class WampFrontend(wamp.ApplicationSession):
 
         import iotronic.wamp.functions as fun
 
-        self.subscribe(fun.node_on_leave, 'wamp.session.on_leave')
-        self.subscribe(fun.node_on_join, 'wamp.session.on_join')
+        self.subscribe(fun.board_on_leave, 'wamp.session.on_leave')
+        self.subscribe(fun.board_on_join, 'wamp.session.on_join')
+        # self.subscribe(fun.on_board_connect, 'board.connection')
 
         try:
             if CONF.wamp.register_agent:

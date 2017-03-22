@@ -43,11 +43,11 @@ class Connection(object):
         """Constructor."""
 
     @abc.abstractmethod
-    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
-                          marker=None, sort_key=None, sort_dir=None):
-        """Get specific columns for matching nodes.
+    def get_boardinfo_list(self, columns=None, filters=None, limit=None,
+                           marker=None, sort_key=None, sort_dir=None):
+        """Get specific columns for matching boards.
 
-        Return a list of the specified columns for all nodes that match the
+        Return a list of the specified columns for all boards that match the
         specified filters.
 
         :param columns: List of column names to return.
@@ -57,11 +57,11 @@ class Connection(object):
                         :associated: True | False
                         :reserved: True | False
                         :maintenance: True | False
-                        :provision_state: provision state of node
+                        :provision_state: provision state of board
                         :provisioned_before:
-                            nodes with provision_updated_at field before this
+                            boards with provision_updated_at field before this
                             interval in seconds
-        :param limit: Maximum number of nodes to return.
+        :param limit: Maximum number of boards to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
         :param sort_key: Attribute by which results should be sorted.
@@ -71,20 +71,20 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_node_list(self, filters=None, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        """Return a list of nodes.
+    def get_board_list(self, filters=None, limit=None, marker=None,
+                       sort_key=None, sort_dir=None):
+        """Return a list of boards.
 
         :param filters: Filters to apply. Defaults to None.
 
                         :associated: True | False
                         :reserved: True | False
                         :maintenance: True | False
-                        :provision_state: provision state of node
+                        :provision_state: provision state of board
                         :provisioned_before:
-                            nodes with provision_updated_at field before this
+                            boards with provision_updated_at field before this
                             interval in seconds
-        :param limit: Maximum number of nodes to return.
+        :param limit: Maximum number of boards to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
         :param sort_key: Attribute by which results should be sorted.
@@ -93,12 +93,12 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def create_node(self, values):
-        """Create a new node.
+    def create_board(self, values):
+        """Create a new board.
 
         :param values: A dict containing several items used to identify
-                       and track the node, and several dicts which are passed
-                       into the Drivers when managing this node. For example:
+                       and track the board, and several dicts which are passed
+                       into the Drivers when managing this board. For example:
 
                        ::
 
@@ -110,65 +110,65 @@ class Connection(object):
                          'properties': { ... },
                          'extra': { ... },
                         }
-        :returns: A node.
+        :returns: A board.
         """
 
     @abc.abstractmethod
-    def get_node_by_id(self, node_id):
-        """Return a node.
+    def get_board_by_id(self, board_id):
+        """Return a board.
 
-        :param node_id: The id of a node.
-        :returns: A node.
+        :param board_id: The id of a board.
+        :returns: A board.
         """
 
     @abc.abstractmethod
-    def get_node_by_uuid(self, node_uuid):
-        """Return a node.
+    def get_board_by_uuid(self, board_uuid):
+        """Return a board.
 
-        :param node_uuid: The uuid of a node.
-        :returns: A node.
+        :param board_uuid: The uuid of a board.
+        :returns: A board.
         """
 
     @abc.abstractmethod
-    def get_node_id_by_uuid(self, node_uuid):
-        """Return a node id.
+    def get_board_id_by_uuid(self, board_uuid):
+        """Return a board id.
 
-        :param node_uuid: The uuid of a node.
-        # :returns: A node.id.
+        :param board_uuid: The uuid of a board.
+        # :returns: A board.id.
         """
 
     @abc.abstractmethod
-    def get_node_by_name(self, node_name):
-        """Return a node.
+    def get_board_by_name(self, board_name):
+        """Return a board.
 
-        :param node_name: The logical name of a node.
-        :returns: A node.
+        :param board_name: The logical name of a board.
+        :returns: A board.
         """
 
     @abc.abstractmethod
-    def get_node_by_code(self, instance):
-        """Return a node.
+    def get_board_by_code(self, instance):
+        """Return a board.
 
         :param instance: The instance code or uuid to search for.
-        :returns: A node.
+        :returns: A board.
         """
 
     @abc.abstractmethod
-    def destroy_node(self, node_id):
-        """Destroy a node and all associated interfaces.
+    def destroy_board(self, board_id):
+        """Destroy a board and all associated interfaces.
 
-        :param node_id: The id or uuid of a node.
+        :param board_id: The id or uuid of a board.
         """
 
     @abc.abstractmethod
-    def update_node(self, node_id, values):
-        """Update properties of a node.
+    def update_board(self, board_id, values):
+        """Update properties of a board.
 
-        :param node_id: The id or uuid of a node.
+        :param board_id: The id or uuid of a board.
         :param values: Dict of values to update.
-        :returns: A node.
-        :raises: NodeAssociated
-        :raises: NodeNotFound
+        :returns: A board.
+        :raises: BoardAssociated
+        :raises: BoardNotFound
         """
 
     @abc.abstractmethod
@@ -213,10 +213,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_session_by_node_uuid(self, node_uuid, valid):
-        """Return a Wamp session of a Node
+    def get_session_by_board_uuid(self, board_uuid, valid):
+        """Return a Wamp session of a Board
 
-        :param node_uuid: Filters to apply. Defaults to None.
+        :param board_uuid: Filters to apply. Defaults to None.
         :param valid: is valid
         :returns: A session.
         """
@@ -253,11 +253,11 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_locations_by_node_id(self, node_id, limit=None, marker=None,
-                                 sort_key=None, sort_dir=None):
-        """List all the locations for a given node.
+    def get_locations_by_board_id(self, board_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
+        """List all the locations for a given board.
 
-        :param node_id: The integer node ID.
+        :param board_id: The integer board ID.
         :param limit: Maximum number of locations to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -363,4 +363,59 @@ class Connection(object):
         :returns: A plugin.
         :raises: PluginAssociated
         :raises: PluginNotFound
+        """
+
+    @abc.abstractmethod
+    def get_injection_plugin_by_board_uuid(self, board_uuid):
+        """get an injection of a plugin using a board_uuid
+
+        :param board_uuid: The id or uuid of a board.
+        :returns: An injection_plugin.
+
+        """
+
+    @abc.abstractmethod
+    def get_injection_plugin_by_uuids(self, board_uuid, plugin_uuid):
+        """get an injection of a plugin using a board_uuid and plugin_uuid
+
+        :param board_uuid: The id or uuid of a board.
+        :param plugin_uuid: The id or uuid of a plugin.
+        :returns: An injection_plugin.
+
+        """
+
+    @abc.abstractmethod
+    def create_injection_plugin(self, values):
+        """Create a new injection_plugin.
+
+        :param values: A dict containing several items used to identify
+                       and track the plugin
+        :returns: An injection plugin.
+        """
+
+    @abc.abstractmethod
+    def destroy_injection_plugin(self, injection_plugin_id):
+        """Destroy an injection plugin and all associated interfaces.
+
+        :param injection_plugin_id: The id or uuid of a plugin.
+        """
+
+    @abc.abstractmethod
+    def update_injection_plugin(self, plugin_injection_id, values):
+        """Update properties of a plugin.
+
+        :param plugin_id: The id or uuid of a plugin.
+        :param values: Dict of values to update.
+        :returns: A plugin.
+        :raises: PluginAssociated
+        :raises: PluginNotFound
+        """
+
+    @abc.abstractmethod
+    def get_injection_plugin_list(self, board_uuid):
+        """Return a list of injection_plugins.
+
+        :param board_uuid: The id or uuid of a plugin.
+        :returns: A list of InjectionPlugins on the board.
+
         """

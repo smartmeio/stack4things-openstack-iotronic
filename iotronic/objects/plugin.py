@@ -21,6 +21,20 @@ from iotronic.db import api as db_api
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
 
+ACTIONS = ['PluginCall', 'PluginStop', 'PluginStart',
+           'PluginStatus', 'PluginReboot']
+NO_PARAMS = ['PluginStatus', 'PluginReboot']
+
+
+def is_valid_action(action):
+    if action not in ACTIONS:
+        raise exception.InvalidPluginAction(action=action)
+    return True
+
+
+def want_params(action):
+    return False if action in NO_PARAMS else True
+
 
 class Plugin(base.IotronicObject):
     # Version 1.0: Initial version
@@ -34,7 +48,8 @@ class Plugin(base.IotronicObject):
         'name': obj_utils.str_or_none,
         'owner': obj_utils.str_or_none,
         'public': bool,
-        'config': obj_utils.str_or_none,
+        'code': obj_utils.str_or_none,
+        'callable': bool,
         'extra': obj_utils.dict_or_none,
     }
 
@@ -48,10 +63,10 @@ class Plugin(base.IotronicObject):
 
     @base.remotable_classmethod
     def get(cls, context, plugin_id):
-        """Find a plugin based on its id or uuid and return a Node object.
+        """Find a plugin based on its id or uuid and return a Board object.
 
         :param plugin_id: the id *or* uuid of a plugin.
-        :returns: a :class:`Node` object.
+        :returns: a :class:`Board` object.
         """
         if strutils.is_int_like(plugin_id):
             return cls.get_by_id(context, plugin_id)
@@ -62,10 +77,10 @@ class Plugin(base.IotronicObject):
 
     @base.remotable_classmethod
     def get_by_id(cls, context, plugin_id):
-        """Find a plugin based on its integer id and return a Node object.
+        """Find a plugin based on its integer id and return a Board object.
 
         :param plugin_id: the id of a plugin.
-        :returns: a :class:`Node` object.
+        :returns: a :class:`Board` object.
         """
         db_plugin = cls.dbapi.get_plugin_by_id(plugin_id)
         plugin = Plugin._from_db_object(cls(context), db_plugin)
@@ -73,10 +88,10 @@ class Plugin(base.IotronicObject):
 
     @base.remotable_classmethod
     def get_by_uuid(cls, context, uuid):
-        """Find a plugin based on uuid and return a Node object.
+        """Find a plugin based on uuid and return a Board object.
 
         :param uuid: the uuid of a plugin.
-        :returns: a :class:`Node` object.
+        :returns: a :class:`Board` object.
         """
         db_plugin = cls.dbapi.get_plugin_by_uuid(uuid)
         plugin = Plugin._from_db_object(cls(context), db_plugin)
@@ -84,10 +99,10 @@ class Plugin(base.IotronicObject):
 
     @base.remotable_classmethod
     def get_by_name(cls, context, name):
-        """Find a plugin based on name and return a Node object.
+        """Find a plugin based on name and return a Board object.
 
         :param name: the logical name of a plugin.
-        :returns: a :class:`Node` object.
+        :returns: a :class:`Board` object.
         """
         db_plugin = cls.dbapi.get_plugin_by_name(name)
         plugin = Plugin._from_db_object(cls(context), db_plugin)
@@ -184,6 +199,6 @@ class Plugin(base.IotronicObject):
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:
             if (hasattr(
-                    self, base.get_attrname(field)) and
-                    self[field] != current[field]):
-                self[field] = current[field]
+                    self, base.get_attrname(field))
+                    and self[field] != current[field]):
+                        self[field] = current[field]

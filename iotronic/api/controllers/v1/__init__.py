@@ -32,7 +32,7 @@ from iotronic.api.controllers.v1 import plugin
 # from iotronic.api.controllers.v1 import ramdisk
 # from iotronic.api.controllers.v1 import utils
 
-from iotronic.api.controllers.v1 import node
+from iotronic.api.controllers.v1 import board
 
 from iotronic.api.controllers.v1 import versions
 from iotronic.api import expose
@@ -57,8 +57,8 @@ class V1(base.APIBase):
     # links = [link.Link]
     """Links that point to a specific URL for this version and documentation"""
 
-    nodes = [link.Link]
-    """Links to the nodes resource"""
+    boards = [link.Link]
+    """Links to the boards resource"""
 
     @staticmethod
     def convert():
@@ -81,13 +81,13 @@ class V1(base.APIBase):
                                           bookmark=True)
                       ]
 
-        v1.nodes = [link.Link.make_link('self', pecan.request.public_url,
-                                        'nodes', ''),
-                    link.Link.make_link('bookmark',
-                                        pecan.request.public_url,
-                                        'nodes', '',
-                                        bookmark=True)
-                    ]
+        v1.boards = [link.Link.make_link('self', pecan.request.public_url,
+                                         'boards', ''),
+                     link.Link.make_link('bookmark',
+                                         pecan.request.public_url,
+                                         'boards', '',
+                                         bookmark=True)
+                     ]
 
         return v1
 
@@ -95,7 +95,7 @@ class V1(base.APIBase):
 class Controller(rest.RestController):
     """Version 1 API controller root."""
 
-    nodes = node.NodesController()
+    boards = board.BoardsController()
     plugins = plugin.PluginsController()
 
     @expose.expose(V1)
@@ -113,19 +113,20 @@ class Controller(rest.RestController):
             raise exc.HTTPNotAcceptable(_(
                 "Mutually exclusive versions requested. Version %(ver)s "
                 "requested but not supported by this service. The supported "
-                "version range is: [%(min)s, %(max)s].") %
-                {'ver': version, 'min': versions.MIN_VERSION_STRING,
-                 'max': versions.MAX_VERSION_STRING},
-                headers=headers)
+                "version range is: [%(min)s, %(max)s].") % {
+                    'ver': version, 'min': versions.MIN_VERSION_STRING,
+                    'max': versions.MAX_VERSION_STRING
+                    }, headers=headers)
         # ensure the minor version is within the supported range
         if version < MIN_VER or version > MAX_VER:
             raise exc.HTTPNotAcceptable(_(
                 "Version %(ver)s was requested but the minor version is not "
                 "supported by this service. The supported version range is: "
-                "[%(min)s, %(max)s].") %
-                {'ver': version, 'min': versions.MIN_VERSION_STRING,
-                 'max': versions.MAX_VERSION_STRING},
-                headers=headers)
+                "[%(min)s, %(max)s].") % {
+                    'ver': version,
+                    'min': versions.MIN_VERSION_STRING,
+                    'max': versions.MAX_VERSION_STRING
+                    }, headers=headers)
 
     @pecan.expose()
     def _route(self, args):

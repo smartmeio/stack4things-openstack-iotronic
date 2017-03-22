@@ -12,25 +12,28 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from iotronic.objects import board
 from iotronic.objects import conductor
+from iotronic.objects import injectionplugin
 from iotronic.objects import location
-from iotronic.objects import node
 from iotronic.objects import plugin
 from iotronic.objects import sessionwp
 from iotronic.objects import wampagent
 
 Conductor = conductor.Conductor
-Node = node.Node
+Board = board.Board
 Location = location.Location
 Plugin = plugin.Plugin
+InjectionPlugin = injectionplugin.InjectionPlugin
 SessionWP = sessionwp.SessionWP
 WampAgent = wampagent.WampAgent
 
 __all__ = (
     Conductor,
-    Node,
+    Board,
     Location,
     SessionWP,
     WampAgent,
     Plugin,
+    InjectionPlugin,
 )

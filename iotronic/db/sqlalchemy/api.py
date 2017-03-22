@@ -26,13 +26,11 @@ from oslo_utils import uuidutils
 from sqlalchemy import or_
 from sqlalchemy.orm.exc import NoResultFound
 
-
 from iotronic.common import exception
 from iotronic.common.i18n import _
 from iotronic.common import states
 from iotronic.db import api
 from iotronic.db.sqlalchemy import models
-
 
 CONF = cfg.CONF
 CONF.import_opt('heartbeat_timeout',
@@ -117,20 +115,20 @@ class Connection(api.Connection):
     def __init__(self):
         pass
 
-    def _add_location_filter_by_node(self, query, value):
+    def _add_location_filter_by_board(self, query, value):
         if strutils.is_int_like(value):
-            return query.filter_by(node_id=value)
+            return query.filter_by(board_id=value)
         else:
-            query = query.join(models.Node,
-                               models.Location.node_id == models.Node.id)
-            return query.filter(models.Node.uuid == value)
+            query = query.join(models.Board,
+                               models.Location.board_id == models.Board.id)
+            return query.filter(models.Board.uuid == value)
 
-    def _add_nodes_filters(self, query, filters):
+    def _add_boards_filters(self, query, filters):
         if filters is None:
             filters = []
 
         if 'project_id' in filters:
-            query = query.filter(models.Node.project == filters['project_id'])
+            query = query.filter(models.Board.project == filters['project_id'])
 
         return query
 
@@ -168,139 +166,157 @@ class Connection(api.Connection):
 
         return query
 
-    def _do_update_node(self, node_id, values):
+    def _do_update_board(self, board_id, values):
         session = get_session()
         with session.begin():
-            query = model_query(models.Node, session=session)
-            query = add_identity_filter(query, node_id)
+            query = model_query(models.Board, session=session)
+            query = add_identity_filter(query, board_id)
             try:
                 ref = query.with_lockmode('update').one()
             except NoResultFound:
-                raise exception.NodeNotFound(node=node_id)
-
-            # Prevent instance_uuid overwriting
-            if values.get("instance_uuid") and ref.instance_uuid:
-                raise exception.NodeAssociated(
-                    node=node_id, instance=ref.instance_uuid)
+                raise exception.BoardNotFound(board=board_id)
 
             ref.update(values)
         return ref
 
-    # NODE api
+    def _do_update_plugin(self, plugin_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Plugin, session=session)
+            query = add_identity_filter(query, plugin_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.PluginNotFound(plugin=plugin_id)
 
-    def get_nodeinfo_list(self, columns=None, filters=None, limit=None,
-                          marker=None, sort_key=None, sort_dir=None):
+            ref.update(values)
+        return ref
+
+    def _do_update_injection_plugin(self, injection_plugin_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.InjectionPlugin, session=session)
+            query = add_identity_filter(query, injection_plugin_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.InjectionPluginNotFound(
+                    injection_plugin=injection_plugin_id)
+
+            ref.update(values)
+        return ref
+
+    # BOARD api
+
+    def get_boardinfo_list(self, columns=None, filters=None, limit=None,
+                           marker=None, sort_key=None, sort_dir=None):
         # list-ify columns default values because it is bad form
         # to include a mutable list in function definitions.
         if columns is None:
-            columns = [models.Node.id]
+            columns = [models.Board.id]
         else:
-            columns = [getattr(models.Node, c) for c in columns]
+            columns = [getattr(models.Board, c) for c in columns]
 
-        query = model_query(*columns, base_model=models.Node)
-        query = self._add_nodes_filters(query, filters)
-        return _paginate_query(models.Node, limit, marker,
+        query = model_query(*columns, base_model=models.Board)
+        query = self._add_boards_filters(query, filters)
+        return _paginate_query(models.Board, limit, marker,
                                sort_key, sort_dir, query)
 
-    def get_node_list(self, filters=None, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        query = model_query(models.Node)
-        query = self._add_nodes_filters(query, filters)
-        return _paginate_query(models.Node, limit, marker,
+    def get_board_list(self, filters=None, limit=None, marker=None,
+                       sort_key=None, sort_dir=None):
+        query = model_query(models.Board)
+        query = self._add_boards_filters(query, filters)
+        return _paginate_query(models.Board, limit, marker,
                                sort_key, sort_dir, query)
 
-    def create_node(self, values):
-        # ensure defaults are present for new nodes
+    def create_board(self, values):
+        # ensure defaults are present for new boards
         if 'uuid' not in values:
             values['uuid'] = uuidutils.generate_uuid()
         if 'status' not in values:
             values['status'] = states.REGISTERED
 
-        node = models.Node()
-        node.update(values)
+        board = models.Board()
+        board.update(values)
         try:
-            node.save()
+            board.save()
         except db_exc.DBDuplicateEntry as exc:
             if 'code' in exc.columns:
                 raise exception.DuplicateCode(code=values['code'])
-            raise exception.NodeAlreadyExists(uuid=values['uuid'])
-        return node
+            raise exception.BoardAlreadyExists(uuid=values['uuid'])
+        return board
 
-    def get_node_by_id(self, node_id):
-        query = model_query(models.Node).filter_by(id=node_id)
+    def get_board_by_id(self, board_id):
+        query = model_query(models.Board).filter_by(id=board_id)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node_id)
+            raise exception.BoardNotFound(board=board_id)
 
-    def get_node_id_by_uuid(self, node_uuid):
-        query = model_query(models.Node.id).filter_by(uuid=node_uuid)
+    def get_board_id_by_uuid(self, board_uuid):
+        query = model_query(models.Board.id).filter_by(uuid=board_uuid)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node_uuid)
+            raise exception.BoardNotFound(board=board_uuid)
 
-    def get_node_by_uuid(self, node_uuid):
-        query = model_query(models.Node).filter_by(uuid=node_uuid)
+    def get_board_by_uuid(self, board_uuid):
+        query = model_query(models.Board).filter_by(uuid=board_uuid)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node_uuid)
+            raise exception.BoardNotFound(board=board_uuid)
 
-    def get_node_by_name(self, node_name):
-        query = model_query(models.Node).filter_by(name=node_name)
+    def get_board_by_name(self, board_name):
+        query = model_query(models.Board).filter_by(name=board_name)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node_name)
+            raise exception.BoardNotFound(board=board_name)
 
-    def get_node_by_code(self, node_code):
-        query = model_query(models.Node).filter_by(code=node_code)
+    def get_board_by_code(self, board_code):
+        query = model_query(models.Board).filter_by(code=board_code)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotFound(node=node_code)
+            raise exception.BoardNotFound(board=board_code)
 
-    def destroy_node(self, node_id):
+    def destroy_board(self, board_id):
 
         session = get_session()
         with session.begin():
-            query = model_query(models.Node, session=session)
-            query = add_identity_filter(query, node_id)
+            query = model_query(models.Board, session=session)
+            query = add_identity_filter(query, board_id)
             try:
-                node_ref = query.one()
+                board_ref = query.one()
             except NoResultFound:
-                raise exception.NodeNotFound(node=node_id)
+                raise exception.BoardNotFound(board=board_id)
 
-            # Get node ID, if an UUID was supplied. The ID is
-            # required for deleting all ports, attached to the node.
-            if uuidutils.is_uuid_like(node_id):
-                node_id = node_ref['id']
+            # Get board ID, if an UUID was supplied. The ID is
+            # required for deleting all ports, attached to the board.
+            if uuidutils.is_uuid_like(board_id):
+                board_id = board_ref['id']
 
             location_query = model_query(models.Location, session=session)
-            location_query = self._add_location_filter_by_node(
-                location_query, node_id)
+            location_query = self._add_location_filter_by_board(
+                location_query, board_id)
             location_query.delete()
 
             query.delete()
 
-    def update_node(self, node_id, values):
+    def update_board(self, board_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
-            msg = _("Cannot overwrite UUID for an existing Node.")
+            msg = _("Cannot overwrite UUID for an existing Board.")
             raise exception.InvalidParameterValue(err=msg)
 
         try:
-            return self._do_update_node(node_id, values)
+            return self._do_update_board(board_id, values)
         except db_exc.DBDuplicateEntry as e:
             if 'name' in e.columns:
                 raise exception.DuplicateName(name=values['name'])
             elif 'uuid' in e.columns:
-                raise exception.NodeAlreadyExists(uuid=values['uuid'])
-            elif 'instance_uuid' in e.columns:
-                raise exception.InstanceAssociated(
-                    instance_uuid=values['instance_uuid'],
-                    node=node_id)
+                raise exception.BoardAlreadyExists(uuid=values['uuid'])
             else:
                 raise e
 
@@ -385,10 +401,10 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.LocationNotFound(location=location_id)
 
-    def get_locations_by_node_id(self, node_id, limit=None, marker=None,
-                                 sort_key=None, sort_dir=None):
+    def get_locations_by_board_id(self, board_id, limit=None, marker=None,
+                                  sort_key=None, sort_dir=None):
         query = model_query(models.Location)
-        query = query.filter_by(node_id=node_id)
+        query = query.filter_by(board_id=board_id)
         return _paginate_query(models.Location, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -413,15 +429,15 @@ class Connection(api.Connection):
             raise exception.SessionWPNotFound(ses=ses_id)
         return ref
 
-    def get_session_by_node_uuid(self, node_uuid, valid):
+    def get_session_by_board_uuid(self, board_uuid, valid):
         query = model_query(
             models.SessionWP).filter_by(
-            node_uuid=node_uuid).filter_by(
+            board_uuid=board_uuid).filter_by(
             valid=valid)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeNotConnected(node=node_uuid)
+            raise exception.BoardNotConnected(board=board_uuid)
 
     def get_session_by_id(self, session_id):
         query = model_query(models.SessionWP).filter_by(session_id=session_id)
@@ -550,10 +566,6 @@ class Connection(api.Connection):
                 raise exception.DuplicateName(name=values['name'])
             elif 'uuid' in e.columns:
                 raise exception.PluginAlreadyExists(uuid=values['uuid'])
-            elif 'instance_uuid' in e.columns:
-                raise exception.InstanceAssociated(
-                    instance_uuid=values['instance_uuid'],
-                    plugin=plugin_id)
             else:
                 raise e
 
@@ -575,3 +587,71 @@ class Connection(api.Connection):
         query = self._add_plugins_filters(query, filters)
         return _paginate_query(models.Plugin, limit, marker,
                                sort_key, sort_dir, query)
+
+    # INJECTION PLUGIN api
+
+    def get_injection_plugin_by_board_uuid(self, board_uuid):
+        query = model_query(
+            models.InjectionPlugin).filter_by(
+            board_uuid=board_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.InjectionPluginNotFound()
+
+    def create_injection_plugin(self, values):
+        # ensure defaults are present for new plugins
+        if 'uuid' not in values:
+            values['uuid'] = uuidutils.generate_uuid()
+        inj_plug = models.InjectionPlugin()
+        inj_plug.update(values)
+        try:
+            inj_plug.save()
+        except db_exc.DBDuplicateEntry:
+            raise exception.PluginAlreadyExists(uuid=values['uuid'])
+        return inj_plug
+
+    def update_injection_plugin(self, plugin_injection_id, values):
+
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Plugin.")
+            raise exception.InvalidParameterValue(err=msg)
+        try:
+            return self._do_update_injection_plugin(
+                plugin_injection_id, values)
+
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'uuid' in e.columns:
+                raise exception.PluginAlreadyExists(uuid=values['uuid'])
+            else:
+                raise e
+
+    def get_injection_plugin_by_uuids(self, board_uuid, plugin_uuid):
+        query = model_query(
+            models.InjectionPlugin).filter_by(
+            board_uuid=board_uuid).filter_by(
+            plugin_uuid=plugin_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.InjectionPluginNotFound()
+
+    def destroy_injection_plugin(self, injection_plugin_id):
+
+        session = get_session()
+        with session.begin():
+            query = model_query(models.InjectionPlugin, session=session)
+            query = add_identity_filter(query, injection_plugin_id)
+            try:
+                query.delete()
+
+            except NoResultFound:
+                raise exception.InjectionPluginNotFound()
+
+    def get_injection_plugin_list(self, board_uuid):
+        query = model_query(
+            models.InjectionPlugin).filter_by(
+            board_uuid=board_uuid)
+        return query.all()

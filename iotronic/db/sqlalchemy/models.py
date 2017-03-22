@@ -138,14 +138,14 @@ class WampAgent(Base):
     ragent = Column(Boolean, default=False)
 
 
-class Node(Base):
-    """Represents a Node."""
+class Board(Base):
+    """Represents a Board."""
 
-    __tablename__ = 'nodes'
+    __tablename__ = 'boards'
 
     __table_args__ = (
-        schema.UniqueConstraint('uuid', name='uniq_nodes0uuid'),
-        schema.UniqueConstraint('code', name='uniq_nodes0code'),
+        schema.UniqueConstraint('uuid', name='uniq_boards0uuid'),
+        schema.UniqueConstraint('code', name='uniq_boards0code'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
@@ -162,7 +162,7 @@ class Node(Base):
 
 
 class Location(Base):
-    """Represents a location of a node."""
+    """Represents a location of a board."""
 
     __tablename__ = 'locations'
     __table_args__ = (
@@ -171,11 +171,11 @@ class Location(Base):
     longitude = Column(String(18), nullable=True)
     latitude = Column(String(18), nullable=True)
     altitude = Column(String(18), nullable=True)
-    node_id = Column(Integer, ForeignKey('nodes.id'))
+    board_id = Column(Integer, ForeignKey('boards.id'))
 
 
 class SessionWP(Base):
-    """Represents a session of a node."""
+    """Represents a session of a board."""
 
     __tablename__ = 'sessions'
     __table_args__ = (
@@ -183,14 +183,14 @@ class SessionWP(Base):
             'session_id',
             name='uniq_session_id0session_id'),
         schema.UniqueConstraint(
-            'node_uuid',
-            name='uniq_node_uuid0node_uuid'),
+            'board_uuid',
+            name='uniq_board_uuid0board_uuid'),
         table_args())
     id = Column(Integer, primary_key=True)
     valid = Column(Boolean, default=True)
     session_id = Column(String(15))
-    node_uuid = Column(String(36))
-    node_id = Column(Integer, ForeignKey('nodes.id'))
+    board_uuid = Column(String(36))
+    board_id = Column(Integer, ForeignKey('boards.id'))
 
 
 class Plugin(Base):
@@ -205,19 +205,19 @@ class Plugin(Base):
     name = Column(String(36))
     owner = Column(String(36))
     public = Column(Boolean, default=False)
-    config = Column(TEXT)
+    code = Column(TEXT)
+    callable = Column(Boolean)
     extra = Column(JSONEncodedDict)
 
 
-class Injected_Plugin(Base):
+class InjectionPlugin(Base):
     """Represents an plugin injection on board."""
 
-    __tablename__ = 'injected_plugins'
+    __tablename__ = 'injection_plugins'
     __table_args__ = (
         table_args())
     id = Column(Integer, primary_key=True)
-    node_uuid = Column(String(36))
-    node_id = Column(Integer, ForeignKey('nodes.id'))
-    plugin_uuid = Column(String(36))
-    plugin_id = Column(Integer, ForeignKey('plugins.id'))
+    board_uuid = Column(String(36), ForeignKey('boards.uuid'))
+    plugin_uuid = Column(String(36), ForeignKey('plugins.uuid'))
+    onboot = Column(Boolean, default=False)
     status = Column(String(15))
