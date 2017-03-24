@@ -59,6 +59,23 @@ class Location(base.IotronicObject):
         location = Location._from_db_object(cls(context), db_location)
         return location
 
+    def get_geo(self):
+
+        updated = self._attr_to_primitive('updated_at')
+        created = self._attr_to_primitive('created_at')
+
+        geo = {
+            'longitude': self.longitude,
+            'latitude': self.latitude,
+            'altitude': self.altitude,
+        }
+        if updated is None:
+            geo['updated_at'] = created
+        else:
+            geo['updated_at'] = updated
+
+        return geo
+
     # @base.remotable_classmethod
     # def get(cls, context, location_id):
     #     """Find a location based on its id or uuid and return
@@ -199,24 +216,25 @@ class Location(base.IotronicObject):
 
         self.obj_reset_changes()
 
-    # @base.remotable
-    # def refresh(self, context=None):
-    #     """Loads updates for this Location.
-    #
-    #     Loads a location with the same uuid from the database and
-    #     checks for updated attributes. Updates are applied from
-    #     the loaded location column by column, if there are any updates.
-    #
-    #     :param context: Security context. NOTE: This should only
-    #                     be used internally by the indirection_api.
-    #                     Unfortunately, RPC requires context as the first
-    #                     argument, even though we don't use it.
-    #                     A context should be set when instantiating the
-    #                     object, e.g.: Location(context)
-    #     """
-    #     current = self.__class__.get_by_uuid(self._context, uuid=self.uuid)
-    #     for field in self.fields:
-    #         if (hasattr(
-    #                 self, base.get_attrname(field))
-    #                 and self[field] != current[field]):
-    #             self[field] = current[field]
+        # @base.remotable
+        # def refresh(self, context=None):
+        #     """Loads updates for this Location.
+        #
+        #     Loads a location with the same uuid from the database and
+        #     checks for updated attributes. Updates are applied from
+        #     the loaded location column by column, if there are any updates.
+        #
+        #     :param context: Security context. NOTE: This should only
+        #                     be used internally by the indirection_api.
+        #                     Unfortunately, RPC requires context as the first
+        #                     argument, even though we don't use it.
+        #                     A context should be set when instantiating the
+        #                     object, e.g.: Location(context)
+        #     """
+        #     current = self.__class__.get_by_uuid(self._context,
+        #                                          uuid=self.uuid)
+        #     for field in self.fields:
+        #         if (hasattr(
+        #                 self, base.get_attrname(field))
+        #                 and self[field] != current[field]):
+        #             self[field] = current[field]

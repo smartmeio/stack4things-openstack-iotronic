@@ -75,3 +75,8 @@ class Provisioner(object):
         if 'board' not in self.config['iotronic']:
             self.config['iotronic']['board'] = {}
         self.config['iotronic']['board']['token'] = "<REGISTRATION-TOKEN>"
+
+    def conf_location(self, location):
+        if "location" not in self.config['iotronic']['board']:
+            self.config['iotronic']['board']['location'] = {}
+        self.config['iotronic']['board']['location'] = location.get_geo()

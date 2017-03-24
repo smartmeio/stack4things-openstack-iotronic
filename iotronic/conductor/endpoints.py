@@ -114,7 +114,10 @@ class ConductorEndpoint(object):
         prov.conf_registration_agent(self.ragent.wsurl)
 
         prov.conf_main_agent(agent.wsurl)
+        loc = objects.Location.list_by_board_uuid(ctx, board.uuid)[0]
+        prov.conf_location(loc)
         board.config = prov.get_config()
+
         board.status = states.OFFLINE
         board.save()
 
