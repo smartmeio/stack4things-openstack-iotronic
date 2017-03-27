@@ -17,6 +17,7 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 
 from iotronic.common import exception
+from iotronic.common import states
 from iotronic.db import api as db_api
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
@@ -42,6 +43,15 @@ class Board(base.IotronicObject):
         'config': obj_utils.dict_or_none,
         'extra': obj_utils.dict_or_none,
     }
+
+    def check_if_online(self):
+        if self.status != states.ONLINE:
+            raise exception.BoardNotConnected(board=self.uuid)
+
+    def is_online(self):
+        if self.status == states.ONLINE:
+            return True
+        return False
 
     @staticmethod
     def _from_db_object(board, db_board):
@@ -227,6 +237,6 @@ class Board(base.IotronicObject):
         current = self.__class__.get_by_uuid(self._context, self.uuid)
         for field in self.fields:
             if (hasattr(
-                    self, base.get_attrname(field)) and
-                    self[field] != current[field]):
+                    self, base.get_attrname(field))
+                    and self[field] != current[field]):
                 self[field] = current[field]

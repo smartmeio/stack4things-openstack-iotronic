@@ -13,6 +13,7 @@
 #    under the License.
 
 import cPickle as cpickle
+from iotronic.common import exception
 from iotronic.common import states
 from iotronic.conductor.provisioner import Provisioner
 from iotronic import objects
@@ -170,15 +171,14 @@ class ConductorEndpoint(object):
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
 
-        # check the session; it rise an excpetion if session miss
-        objects.SessionWP.get_session_by_board_uuid(ctx, board_uuid)
-
         s4t_topic = 's4t_invoke_wamp'
         full_topic = board.agent + '.' + s4t_topic
-
         self.target.topic = full_topic
-
         full_wamp_call = 'iotronic.' + board.uuid + "." + wamp_rpc_call
+
+        # check the session; it rise an excpetion if session miss
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
 
         res = self.wamp_agent_client.call(ctx, full_topic,
                                           wamp_rpc_call=full_wamp_call,
@@ -268,7 +268,6 @@ class ConductorEndpoint(object):
         LOG.info('Calling plugin with id %s into the board %s',
                  plugin_uuid, board_uuid)
         plugin = objects.Plugin.get(ctx, plugin_uuid)
-
         objects.plugin.is_valid_action(action)
 
         try:

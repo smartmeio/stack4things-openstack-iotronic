@@ -129,6 +129,8 @@ class Connection(api.Connection):
 
         if 'project_id' in filters:
             query = query.filter(models.Board.project == filters['project_id'])
+        if 'status' in filters:
+            query = query.filter(models.Board.status == filters['status'])
 
         return query
 

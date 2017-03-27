@@ -240,7 +240,7 @@ class BoardPluginsController(rest.RestController):
     @expose.expose(wtypes.text, types.uuid_or_name,
                    status_code=204)
     def delete(self, plugin_uuid):
-        """inject a plugin into a board.
+        """Remove a plugin from a board.
 
         :param plugin_ident: UUID or logical name of a plugin.
         :param board_ident: UUID or logical name of a board.
@@ -249,8 +249,9 @@ class BoardPluginsController(rest.RestController):
         # cdict = context.to_policy_values()
         # policy.authorize('iot:plugin:remove', cdict, cdict)
 
-        rpc_plugin = api_utils.get_rpc_plugin(plugin_uuid)
         rpc_board = api_utils.get_rpc_board(self.board_ident)
+        rpc_board.check_if_online()
+        rpc_plugin = api_utils.get_rpc_plugin(plugin_uuid)
         return pecan.request.rpcapi.remove_plugin(pecan.request.context,
                                                   rpc_plugin.uuid,
                                                   rpc_board.uuid)
@@ -282,7 +283,7 @@ class BoardsController(rest.RestController):
         if subcontroller:
             return subcontroller(board_ident=ident), remainder[1:]
 
-    def _get_boards_collection(self, marker, limit,
+    def _get_boards_collection(self, status, marker, limit,
                                sort_key, sort_dir,
                                project=None,
                                resource_url=None, fields=None):
@@ -314,6 +315,9 @@ class BoardsController(rest.RestController):
         else:
             filters['project_id'] = pecan.request.context.project_id
 
+        if status:
+            filters['status'] = status
+
         boards = objects.Board.list(pecan.request.context, limit, marker_obj,
                                     sort_key=sort_key, sort_dir=sort_dir,
                                     filters=filters)
@@ -341,13 +345,15 @@ class BoardsController(rest.RestController):
 
         return Board.convert_with_links(rpc_board, fields=fields)
 
-    @expose.expose(BoardCollection, types.uuid, int, wtypes.text,
+    @expose.expose(BoardCollection, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, types.listtype, wtypes.text)
-    def get_all(self, marker=None,
+    def get_all(self, status=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc',
-                fields=None):
+                fields=None, project=None):
         """Retrieve a list of boards.
 
+        :param status: Optional string value to get only board in
+                                that status.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
                       This value cannot be larger than the value of max_limit
@@ -363,9 +369,9 @@ class BoardsController(rest.RestController):
 
         if fields is None:
             fields = _DEFAULT_RETURN_FIELDS
-        return self._get_boards_collection(marker,
+        return self._get_boards_collection(status, marker,
                                            limit, sort_key, sort_dir,
-                                           fields=fields)
+                                           fields=fields, project=project)
 
     @expose.expose(Board, body=Board, status_code=201)
     def post(self, Board):
@@ -447,13 +453,15 @@ class BoardsController(rest.RestController):
             board)
         return Board.convert_with_links(updated_board)
 
-    @expose.expose(BoardCollection, types.uuid, int, wtypes.text,
+    @expose.expose(BoardCollection, wtypes.text, types.uuid, int, wtypes.text,
                    wtypes.text, types.listtype, wtypes.text)
-    def detail(self, marker=None,
+    def detail(self, status=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc',
                fields=None, project=None):
         """Retrieve a list of boards.
 
+        :param status: Optional string value to get only board in
+                                that status.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
                       This value cannot be larger than the value of max_limit
@@ -475,7 +483,7 @@ class BoardsController(rest.RestController):
         if parent != "boards":
             raise exception.HTTPNotFound()
 
-        return self._get_boards_collection(marker,
+        return self._get_boards_collection(status, marker,
                                            limit, sort_key, sort_dir,
                                            project=project,
                                            fields=fields)
