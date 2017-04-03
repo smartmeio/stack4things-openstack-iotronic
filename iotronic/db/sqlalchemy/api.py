@@ -448,6 +448,10 @@ class Connection(api.Connection):
         except NoResultFound:
             return None
 
+    def get_valid_wpsessions_list(self):
+        query = model_query(models.SessionWP).filter_by(valid=1)
+        return query.all()
+
     # WAMPAGENT api
 
     def register_wampagent(self, values, update_existing=False):

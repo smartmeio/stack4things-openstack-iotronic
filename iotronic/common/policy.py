@@ -101,10 +101,22 @@ plugin_policies = [
                        description='Delete Plugin records'),
     policy.RuleDefault('iot:plugin:update', 'rule:admin_or_owner',
                        description='Update Plugin records'),
-    policy.RuleDefault('iot:plugin:inject',
-                       'rule:is_admin or rule:is_admin_iot_project '
-                       'or rule:is_manager_iot_project',
-                       description='Inject Plugin records'),
+
+]
+
+
+injection_plugin_policies = [
+    policy.RuleDefault('iot:plugin_on_board:get',
+                       'rule:admin_or_owner',
+                       description='Retrieve Plugin records'),
+    policy.RuleDefault('iot:plugin_remove:delete', 'rule:admin_or_owner',
+                       description='Delete Plugin records'),
+
+    policy.RuleDefault('iot:plugin_action:post',
+                       'rule:admin_or_owner',
+                       description='Create Plugin records'),
+    policy.RuleDefault('iot:plugin_inject:put', 'rule:admin_or_owner',
+                       description='Retrieve a Plugin record'),
 
 ]
 
@@ -113,6 +125,7 @@ def list_policies():
     policies = (default_policies
                 + board_policies
                 + plugin_policies
+                + injection_plugin_policies
                 )
     return policies
 

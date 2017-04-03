@@ -23,6 +23,7 @@ from iotronic.objects import utils as obj_utils
 
 ACTIONS = ['PluginCall', 'PluginStop', 'PluginStart',
            'PluginStatus', 'PluginReboot']
+CUSTOM_PARAMS = ['PluginCall', 'PluginStart']
 NO_PARAMS = ['PluginStatus', 'PluginReboot']
 
 
@@ -30,6 +31,10 @@ def is_valid_action(action):
     if action not in ACTIONS:
         raise exception.InvalidPluginAction(action=action)
     return True
+
+
+def want_customs_params(action):
+    return True if action in CUSTOM_PARAMS else False
 
 
 def want_params(action):
@@ -50,6 +55,7 @@ class Plugin(base.IotronicObject):
         'public': bool,
         'code': obj_utils.str_or_none,
         'callable': bool,
+        'parameters': obj_utils.dict_or_none,
         'extra': obj_utils.dict_or_none,
     }
 

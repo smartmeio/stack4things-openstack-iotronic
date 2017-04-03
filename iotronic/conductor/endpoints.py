@@ -51,36 +51,6 @@ class ConductorEndpoint(object):
         LOG.info("ECHO: %s" % data)
         return data
 
-    def connection(self, ctx, uuid, session_num):
-        LOG.debug('Received registration from %s with session %s',
-                  uuid, session_num)
-        try:
-            board = objects.Board.get_by_uuid(ctx, uuid)
-        except Exception as exc:
-            msg = exc.message % {'board': uuid}
-            LOG.error(msg)
-            return wm.WampError(msg).serialize()
-
-        try:
-            old_ses = objects.SessionWP(ctx)
-            old_ses = old_ses.get_session_by_board_uuid(ctx, board.uuid,
-                                                        valid=True)
-            old_ses.valid = False
-            old_ses.save()
-
-        except Exception:
-            LOG.debug('valid session for %s not found', board.uuid)
-
-        session_data = {'board_id': board.id,
-                        'board_uuid': board.uuid,
-                        'session_id': session_num}
-        session = objects.SessionWP(ctx, **session_data)
-        session.create()
-        board.status = states.ONLINE
-        board.save()
-        LOG.debug('Board %s is now  %s', board.uuid, states.ONLINE)
-        return wm.WampSuccess('').serialize()
-
     def registration(self, ctx, code, session_num):
         LOG.debug('Received registration from %s with session %s',
                   code, session_num)
@@ -89,6 +59,12 @@ class ConductorEndpoint(object):
 
         except Exception as exc:
             msg = exc.message % {'board': code}
+            LOG.error(msg)
+            return wm.WampError(msg).serialize()
+
+        if not board.status == states.REGISTERED:
+            msg = "board with code %(board)s cannot " \
+                  "be registered again." % {'board': code}
             LOG.error(msg)
             return wm.WampError(msg).serialize()
 
@@ -131,17 +107,19 @@ class ConductorEndpoint(object):
         LOG.info('Destroying board with id %s',
                  board_id)
         board = objects.Board.get_by_uuid(ctx, board_id)
-
-        prov = Provisioner()
-        prov.conf_clean()
-        p = prov.get_config()
-        LOG.debug('sending this conf %s', p)
-        try:
-            result = self.execute_on_board(ctx, board_id, 'destroyBoard', (p,))
-        except Exception:
-            LOG.error('cannot execute remote destroyboard on %s. '
-                      'Maybe it is OFFLINE', board_id)
-
+        result = None
+        if board.is_online():
+            prov = Provisioner()
+            prov.conf_clean()
+            p = prov.get_config()
+            LOG.debug('sending this conf %s', p)
+            try:
+                result = self.execute_on_board(ctx,
+                                               board_id,
+                                               'destroyBoard',
+                                               (p,))
+            except exception:
+                return exception
         board.destroy()
         if result:
             LOG.debug(result)
@@ -187,8 +165,16 @@ class ConductorEndpoint(object):
 
         if res.result == wm.SUCCESS:
             return res.message
+        elif res.result == wm.WARNING:
+            LOG.warning('Warning in the execution of %s on %s', wamp_rpc_call,
+                        board_uuid)
+            return res.message
         elif res.result == wm.ERROR:
-            raise Exception
+            LOG.error('Error in the execution of %s on %s: %s', wamp_rpc_call,
+                      board_uuid, res.message)
+            raise exception.ErrorExecutionOnBoard(call=wamp_rpc_call,
+                                                  board=board.uuid,
+                                                  error=res.message)
 
     def destroy_plugin(self, ctx, plugin_id):
         LOG.info('Destroying plugin with id %s',
@@ -216,11 +202,13 @@ class ConductorEndpoint(object):
                  plugin_uuid, board_uuid)
 
         plugin = objects.Plugin.get(ctx, plugin_uuid)
-
-        result = self.execute_on_board(ctx,
-                                       board_uuid,
-                                       'PluginInject',
-                                       (plugin, onboot))
+        try:
+            result = self.execute_on_board(ctx,
+                                           board_uuid,
+                                           'PluginInject',
+                                           (plugin, onboot))
+        except exception:
+            return exception
 
         injection = None
         try:
@@ -256,17 +244,16 @@ class ConductorEndpoint(object):
         try:
             result = self.execute_on_board(ctx, board_uuid, 'PluginRemove',
                                            (plugin.uuid,))
-        except Exception:
-            LOG.error('cannot execute a plugin remove on %s. ', Exception)
-            return Exception
+        except exception:
+            return exception
 
         LOG.debug(result)
         injection.destroy()
         return result
 
     def action_plugin(self, ctx, plugin_uuid, board_uuid, action, params):
-        LOG.info('Calling plugin with id %s into the board %s',
-                 plugin_uuid, board_uuid)
+        LOG.info('Calling plugin with id %s into the board %s with params %s',
+                 plugin_uuid, board_uuid, params)
         plugin = objects.Plugin.get(ctx, plugin_uuid)
         objects.plugin.is_valid_action(action)
 
@@ -277,9 +264,8 @@ class ConductorEndpoint(object):
             else:
                 result = self.execute_on_board(ctx, board_uuid, action,
                                                (plugin.uuid,))
-        except Exception:
-            LOG.error('cannot execute a plugin remove on %s. ', Exception)
-            return Exception
+        except exception:
+            return exception
 
         LOG.debug(result)
         return result

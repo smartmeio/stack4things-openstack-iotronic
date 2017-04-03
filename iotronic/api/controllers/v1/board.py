@@ -174,41 +174,47 @@ class BoardPluginsController(rest.RestController):
         """Retrieve a list of plugins of a board.
 
         """
-
-        # cdict = pecan.request.context.to_policy_values()
-        # policy.authorize('iot:plugins_on_board:get', cdict, cdict)
-
         rpc_board = api_utils.get_rpc_board(self.board_ident)
+
+        cdict = pecan.request.context.to_policy_values()
+        cdict['owner'] = rpc_board.owner
+        policy.authorize('iot:plugin_on_board:get', cdict, cdict)
 
         return self._get_plugins_on_board_collection(rpc_board.uuid)
-
-    @expose.expose(InjectionPlugin, types.uuid_or_name)
-    def get_one(self, plugin_ident):
-        """Retrieve information about the given board.
-
-        :param plugin_ident: UUID or logical name of a board.
-        :param fields: Optional, a list with a specified set of fields
-            of the resource to be returned.
-        """
-
-        # cdict = pecan.request.context.to_policy_values()
-        # policy.authorize('iot:plugins_on_board:get', cdict, cdict)
-
-        rpc_board = api_utils.get_rpc_board(self.board_ident)
-        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
-        inj_plug = objects.InjectionPlugin.get(pecan.request.context,
-                                               rpc_board.uuid,
-                                               rpc_plugin.uuid)
-        return InjectionPlugin(**inj_plug.as_dict())
 
     @expose.expose(wtypes.text, types.uuid_or_name, body=PluginAction,
                    status_code=200)
     def post(self, plugin_ident, PluginAction):
-        # cdict = pecan.request.context.to_policy_values()
-        # policy.authorize('iot:plugin_action:post', cdict, cdict)
 
-        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
+        if not PluginAction.action:
+            raise exception.MissingParameterValue(
+                ("Action is not specified."))
+
+        if not PluginAction.parameters:
+            PluginAction.parameters = {}
+
         rpc_board = api_utils.get_rpc_board(self.board_ident)
+        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
+
+        try:
+            cdict = pecan.request.context.to_policy_values()
+            cdict['owner'] = rpc_board.owner
+            policy.authorize('iot:plugin_action:post', cdict, cdict)
+
+            if not rpc_plugin.public:
+                cdict = pecan.request.context.to_policy_values()
+                cdict['owner'] = rpc_plugin.owner
+                policy.authorize('iot:plugin_action:post', cdict, cdict)
+        except exception:
+            return exception
+
+        rpc_board.check_if_online()
+
+        if objects.plugin.want_customs_params(PluginAction.action):
+            valid_keys = list(rpc_plugin.parameters.keys())
+            if not all(k in PluginAction.parameters for k in valid_keys):
+                raise exception.InvalidParameterValue(
+                    "Parameters are different from the valid ones")
 
         result = pecan.request.rpcapi.action_plugin(pecan.request.context,
                                                     rpc_plugin.uuid,
@@ -226,11 +232,29 @@ class BoardPluginsController(rest.RestController):
         :param board_ident: UUID or logical name of a board.
         """
 
-        # cdict = context.to_policy_values()
-        # policy.authorize('iot:plugin:inject', cdict, cdict)
+        if not Injection.plugin:
+            raise exception.MissingParameterValue(
+                ("Plugin is not specified."))
 
-        rpc_plugin = api_utils.get_rpc_plugin(Injection.plugin)
+        if not Injection.onboot:
+            Injection.onboot = False
+
         rpc_board = api_utils.get_rpc_board(self.board_ident)
+        rpc_plugin = api_utils.get_rpc_plugin(Injection.plugin)
+
+        try:
+            cdict = pecan.request.context.to_policy_values()
+            cdict['owner'] = rpc_board.owner
+            policy.authorize('iot:plugin_inject:put', cdict, cdict)
+
+            if not rpc_plugin.public:
+                cdict = pecan.request.context.to_policy_values()
+                cdict['owner'] = rpc_plugin.owner
+                policy.authorize('iot:plugin_inject:put', cdict, cdict)
+        except exception:
+            return exception
+
+        rpc_board.check_if_online()
         result = pecan.request.rpcapi.inject_plugin(pecan.request.context,
                                                     rpc_plugin.uuid,
                                                     rpc_board.uuid,
@@ -245,11 +269,12 @@ class BoardPluginsController(rest.RestController):
         :param plugin_ident: UUID or logical name of a plugin.
         :param board_ident: UUID or logical name of a board.
         """
-
-        # cdict = context.to_policy_values()
-        # policy.authorize('iot:plugin:remove', cdict, cdict)
-
         rpc_board = api_utils.get_rpc_board(self.board_ident)
+        cdict = pecan.request.context.to_policy_values()
+        cdict['owner'] = rpc_board.owner
+
+        policy.authorize('iot:plugin_remove:delete', cdict, cdict)
+
         rpc_board.check_if_online()
         rpc_plugin = api_utils.get_rpc_plugin(plugin_uuid)
         return pecan.request.rpcapi.remove_plugin(pecan.request.context,

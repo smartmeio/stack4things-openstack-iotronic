@@ -16,6 +16,8 @@
 from autobahn.twisted import wamp
 from autobahn.twisted import websocket
 from autobahn.wamp import types
+from twisted.internet.defer import inlineCallbacks
+
 from iotronic.common import exception
 from iotronic.common.i18n import _LI
 from iotronic.common.i18n import _LW
@@ -43,6 +45,13 @@ wamp_opts = [
     cfg.BoolOpt('register_agent',
                 default=False,
                 help=('Flag for se a registration agent')),
+    cfg.IntOpt('autoPingInterval',
+               default=2,
+               help=('autoPingInterval parameter for wamp')),
+    cfg.IntOpt('autoPingTimeout',
+               default=2,
+               help=('autoPingInterval parameter for wamp')),
+
 ]
 
 CONF = cfg.CONF
@@ -100,6 +109,7 @@ class WampEndpoint(object):
 
 
 class WampFrontend(wamp.ApplicationSession):
+    @inlineCallbacks
     def onJoin(self, details):
         global wamp_session_caller, AGENT_HOST
         wamp_session_caller = self
@@ -108,7 +118,6 @@ class WampFrontend(wamp.ApplicationSession):
 
         self.subscribe(fun.board_on_leave, 'wamp.session.on_leave')
         self.subscribe(fun.board_on_join, 'wamp.session.on_join')
-        # self.subscribe(fun.on_board_connect, 'board.connection')
 
         try:
             if CONF.wamp.register_agent:
@@ -123,6 +132,10 @@ class WampFrontend(wamp.ApplicationSession):
             LOG.error("could not register procedure: {0}".format(e))
 
         LOG.info("WAMP session ready.")
+
+        session_l = yield self.call(u'wamp.session.list')
+        session_l.remove(details.session)
+        fun.update_sessions(session_l)
 
     def onDisconnect(self):
         LOG.info("disconnected")
@@ -183,6 +196,9 @@ class WampManager(object):
         session_factory.session = WampFrontend
         transport_factory = WampClientFactory(session_factory,
                                               url=CONF.wamp.wamp_transport_url)
+
+        transport_factory.autoPingInterval = CONF.wamp.autoPingInterval
+        transport_factory.autoPingTimeout = CONF.wamp.autoPingTimeout
 
         LOG.debug("wamp url: %s wamp realm: %s",
                   CONF.wamp.wamp_transport_url, CONF.wamp.wamp_realm)

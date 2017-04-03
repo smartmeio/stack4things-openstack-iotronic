@@ -39,6 +39,7 @@ class Plugin(base.APIBase):
     public = types.boolean
     owner = types.uuid
     callable = types.boolean
+    parameters = types.jsontype
     links = wsme.wsattr([link.Link], readonly=True)
     extra = types.jsontype
 
@@ -105,7 +106,7 @@ class PluginsController(rest.RestController):
 
     def _get_plugins_collection(self, marker, limit,
                                 sort_key, sort_dir,
-                                fields=None, with_publics=False,
+                                fields=None, with_public=False,
                                 all_plugins=False):
 
         limit = api_utils.validate_limit(limit)
@@ -130,8 +131,8 @@ class PluginsController(rest.RestController):
         else:
             if not all_plugins:
                 filters['owner'] = pecan.request.context.user_id
-                if with_publics:
-                    filters['public'] = with_publics
+                if with_public:
+                    filters['public'] = with_public
 
         plugins = objects.Plugin.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,
@@ -153,18 +154,18 @@ class PluginsController(rest.RestController):
         """
 
         rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
-
-        cdict = pecan.request.context.to_policy_values()
-        cdict['owner'] = rpc_plugin.owner
-        policy.authorize('iot:plugin:get_one', cdict, cdict)
+        if not rpc_plugin.public:
+            cdict = pecan.request.context.to_policy_values()
+            cdict['owner'] = rpc_plugin.owner
+            policy.authorize('iot:plugin:get_one', cdict, cdict)
 
         return Plugin.convert_with_links(rpc_plugin, fields=fields)
 
     @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype)
+                   wtypes.text, types.listtype, types.boolean, types.boolean)
     def get_all(self, marker=None,
                 limit=None, sort_key='id', sort_dir='asc',
-                fields=None):
+                fields=None, with_public=False, all_plugins=False):
         """Retrieve a list of plugins.
 
         :param marker: pagination marker for large data sets.
@@ -174,6 +175,9 @@ class PluginsController(rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param with_public: Optional boolean to get also public pluings.
+        :param all_plugins: Optional boolean to get all the pluings.
+                            Only for the admin
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         """
@@ -184,6 +188,8 @@ class PluginsController(rest.RestController):
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_plugins_collection(marker,
                                             limit, sort_key, sort_dir,
+                                            with_public=with_public,
+                                            all_plugins=all_plugins,
                                             fields=fields)
 
     @expose.expose(Plugin, body=Plugin, status_code=201)
@@ -210,7 +216,6 @@ class PluginsController(rest.RestController):
                                     **Plugin.as_dict())
 
         new_Plugin.owner = cdict['user']
-
         new_Plugin = pecan.request.rpcapi.create_plugin(pecan.request.context,
                                                         new_Plugin)
 
@@ -239,27 +244,27 @@ class PluginsController(rest.RestController):
         :return updated_plugin: updated_plugin
         """
 
-        context = pecan.request.context
-        cdict = context.to_policy_values()
+        rpc_plugin = api_utils.get_rpc_plugin(plugin_ident)
+        cdict = pecan.request.context.to_policy_values()
+        cdict['owner'] = rpc_plugin.owner
         policy.authorize('iot:plugin:update', cdict, cdict)
 
-        plugin = api_utils.get_rpc_plugin(plugin_ident)
         val_Plugin = val_Plugin.as_dict()
         for key in val_Plugin:
             try:
-                plugin[key] = val_Plugin[key]
+                rpc_plugin[key] = val_Plugin[key]
             except Exception:
                 pass
 
         updated_plugin = pecan.request.rpcapi.update_plugin(
-            pecan.request.context, plugin)
+            pecan.request.context, rpc_plugin)
         return Plugin.convert_with_links(updated_plugin)
 
     @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
                    wtypes.text, types.listtype, types.boolean, types.boolean)
     def detail(self, marker=None,
                limit=None, sort_key='id', sort_dir='asc',
-               fields=None, with_publics=False, all_plugins=False):
+               fields=None, with_public=False, all_plugins=False):
         """Retrieve a list of plugins.
 
         :param marker: pagination marker for large data sets.
@@ -269,7 +274,7 @@ class PluginsController(rest.RestController):
                       max_limit resources will be returned.
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
-        :param with_publics: Optional boolean to get also public pluings.
+        :param with_public: Optional boolean to get also public pluings.
         :param all_plugins: Optional boolean to get all the pluings.
                             Only for the admin
         :param fields: Optional, a list with a specified set of fields
@@ -286,6 +291,6 @@ class PluginsController(rest.RestController):
 
         return self._get_plugins_collection(marker,
                                             limit, sort_key, sort_dir,
-                                            with_publics=with_publics,
+                                            with_public=with_public,
                                             all_plugins=all_plugins,
                                             fields=fields)

@@ -207,6 +207,7 @@ class Plugin(Base):
     public = Column(Boolean, default=False)
     code = Column(TEXT)
     callable = Column(Boolean)
+    parameters = Column(JSONEncodedDict)
     extra = Column(JSONEncodedDict)
 
 

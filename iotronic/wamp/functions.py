@@ -17,6 +17,7 @@ from iotronic.common import rpc
 from iotronic.common import states
 from iotronic.conductor import rpcapi
 from iotronic import objects
+from iotronic.wamp import wampmessage as wm
 from oslo_config import cfg
 from oslo_log import log
 
@@ -44,6 +45,34 @@ def echo(data):
     return data
 
 
+def update_sessions(session_list):
+    session_list = set(session_list)
+    list_from_db = objects.SessionWP.valid_list(ctxt)
+    list_db = set([int(elem.session_id) for elem in list_from_db])
+
+    if session_list == list_db:
+        LOG.debug('Sessions on the database are updated.')
+        return
+
+    old_connected = list_db.difference(session_list)
+    for elem in old_connected:
+        old_session = objects.SessionWP.get(ctxt, elem)
+        old_session.valid = False
+        old_session.save()
+        LOG.debug('%s has been put offline.', old_session.board_uuid)
+    if old_connected:
+        LOG.warning('Some boards have been updated: status offline')
+
+    keep_connected = list_db.intersection(session_list)
+    for elem in keep_connected:
+        for x in list_from_db:
+            if x.session_id == str(elem):
+                LOG.debug('%s need to be restored.', x.board_uuid)
+                break
+    if keep_connected:
+        LOG.warning('Some boards need to be restored.')
+
+
 def board_on_leave(session_id):
     LOG.debug('A board with %s disconnectd', session_id)
 
@@ -61,24 +90,36 @@ def board_on_leave(session_id):
     LOG.debug('Board %s is now  %s', old_session.uuid, states.OFFLINE)
 
 
-def on_board_connect(board_uuid, session_id, msg):
-    if msg == 'connection':
-        try:
-            board = objects.Board.get_by_uuid(ctxt, board_uuid)
-            board.status = states.ONLINE
-            session_data = {'board_id': board.id,
-                            'board_uuid': board.uuid,
-                            'session_id': session_id}
-            session = objects.SessionWP(ctxt, **session_data)
-            session.create()
-            board.save()
-            LOG.debug('Board %s is now  %s', board_uuid, states.ONLINE)
-        except Exception:
-            LOG.debug(Exception.message)
-
-
 def connection(uuid, session):
-    return c.connection(ctxt, uuid, session)
+    LOG.debug('Received registration from %s with session %s',
+              uuid, session)
+    try:
+        board = objects.Board.get_by_uuid(ctxt, uuid)
+    except Exception as exc:
+        msg = exc.message % {'board': uuid}
+        LOG.error(msg)
+        return wm.WampError(msg).serialize()
+
+    try:
+        old_ses = objects.SessionWP(ctxt)
+        old_ses = old_ses.get_session_by_board_uuid(ctxt, board.uuid,
+                                                    valid=True)
+        old_ses.valid = False
+        old_ses.save()
+
+    except Exception:
+        LOG.debug('valid session for %s not found', board.uuid)
+
+    session_data = {'board_id': board.id,
+                    'board_uuid': board.uuid,
+                    'session_id': session}
+    session = objects.SessionWP(ctxt, **session_data)
+    session.create()
+    board.status = states.ONLINE
+    board.save()
+    LOG.info('Board %s (%s) is now  %s', board.uuid,
+             board.name, states.ONLINE)
+    return wm.WampSuccess('').serialize()
 
 
 def registration(code, session):

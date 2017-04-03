@@ -196,7 +196,7 @@ class ConductorAPI(object):
                           board_uuid=board_uuid)
 
     def action_plugin(self, context, plugin_uuid,
-                      board_uuid, action, params=None, topic=None):
+                      board_uuid, action, params, topic=None):
         """Action on a plugin into a board.
 
         :param context: request context.

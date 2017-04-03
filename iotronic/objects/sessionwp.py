@@ -43,14 +43,6 @@ class SessionWP(base.IotronicObject):
         session.obj_reset_changes()
         return session
 
-    @staticmethod
-    def _from_db_object_list(db_objects, cls, context):
-        """Converts a list of database entities to a list of formal objects."""
-        return [
-            SessionWP._from_db_object(
-                cls(context),
-                obj) for obj in db_objects]
-
     @base.remotable_classmethod
     def get(cls, context, session_or_board_uuid):
         """Find a session based on its id or uuid and return a SessionWP object.
@@ -90,24 +82,15 @@ class SessionWP(base.IotronicObject):
         return session
 
     @base.remotable_classmethod
-    def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None):
+    def valid_list(cls, context):
         """Return a list of SessionWP objects.
 
-        :param context: Security context.
-        :param limit: maximum number of resources to return in a single result.
-        :param marker: pagination marker for large data sets.
-        :param sort_key: column to sort results by.
-        :param sort_dir: direction to sort. "asc" or "desc".
-        :returns: a list of :class:`SessionWP` object.
+        :returns: a list of valid session_id
 
         """
 
-        db_sessions = cls.dbapi.get_session_list(limit=limit,
-                                                 marker=marker,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir)
-        return SessionWP._from_db_object_list(db_sessions, cls, context)
+        db_list = cls.dbapi.get_valid_wpsessions_list()
+        return [SessionWP._from_db_object(cls(context), x) for x in db_list]
 
     @base.remotable
     def create(self, context=None):
@@ -178,4 +161,4 @@ class SessionWP(base.IotronicObject):
             if (hasattr(
                     self, base.get_attrname(field))
                     and self[field] != current[field]):
-                    self[field] = current[field]
+                        self[field] = current[field]

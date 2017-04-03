@@ -268,6 +268,10 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_valid_wpsessions_list(self):
+        """Return a list of wpsession."""
+
+    @abc.abstractmethod
     def get_wampagent(self, hostname):
         """Retrieve a wampagent's service record from the database.
 

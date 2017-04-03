@@ -415,8 +415,8 @@ class CommunicationError(IotronicException):
     message = _("Unable to communicate with the server.")
 
 
-class HTTPForbidden(Forbidden):
-    pass
+class HTTPForbidden(NotAuthorized):
+    message = _("Access was denied to the following resource: %(resource)s")
 
 
 class Unauthorized(IotronicException):
@@ -589,3 +589,7 @@ class InvalidPluginAction(Invalid):
 
 class NeedParams(Invalid):
     message = _("Action %(action)s needs parameters.")
+
+
+class ErrorExecutionOnBoard(IotronicException):
+    message = _("Error in the execution of %(call)s on %(board)s: %(error)s")

@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`plugins` (
   `public` TINYINT(1) NOT NULL DEFAULT '0',
   `code` TEXT NULL DEFAULT NULL,
   `callable` TINYINT(1) NOT NULL,
+  `parameters` TEXT NULL DEFAULT NULL,
   `extra` TEXT NULL DEFAULT NULL,
   `owner` VARCHAR(36) NOT NULL,
   PRIMARY KEY (`id`),
@@ -193,17 +194,20 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 -- insert testing boards
 INSERT INTO `boards` VALUES
-  ('2017-02-20 10:38:26',NULL,132,'f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','laptop-14','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
-  ('2017-02-20 10:38:45',NULL,133,'e9bee8d9-7270-5323-d3e9-9875ba9c5753','yunyun','registered','yun22','yun',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
-  ('2017-02-20 10:39:08',NULL,134,'65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}');
+  ('2017-02-20 10:38:26',NULL,'','f3961f7a-c937-4359-8848-fb64aa8eeaaa','12345','registered','laptop-14','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}'),
+  ('2017-02-20 10:38:45',NULL,'','e9bee8d9-7270-5323-d3e9-9875ba9c5753','yunyun','registered','yun-22','yun',NULL,'13ae14174aa1424688a75253ef814261','3c1e2e2c4bac40da9b4b1d694da6e2a1',0,'{}','{}'),
+  ('2017-02-20 10:38:45',NULL,'','96b69f1f-0188-48cc-abdc-d10674144c68','567','registered','yun-30','yun',NULL,'13ae14174aa1424688a75253ef814261','3c1e2e2c4bac40da9b4b1d694da6e2a1',0,'{}','{}'),
+  ('2017-02-20 10:39:08',NULL,'','65f9db36-9786-4803-b66f-51dcdb60066e','test','registered','test','server',NULL,'eee383360cc14c44b9bf21e1e003a4f3','4adfe95d49ad41398e00ecda80257d21',0,'{}','{}');
 INSERT INTO `locations` VALUES
-  ('2017-02-20 10:38:26',NULL,6,'2','1','3',132),
-  ('2017-02-20 10:38:45',NULL,7,'2','1','3',133),
-  ('2017-02-20 10:39:08',NULL,8,'2','1','3',134);
-INSERT INTO `plugins` VALUES
-    ('2017-02-20 10:38:26',NULL,132,'edff22cd-9148-4ad8-b35b-51dcdb60066e','runner','0','V# Copyright 2017 MDSLAB - University of Messina\u000a# All Rights Reserved.\u000a#\u000a# Licensed under the Apache License, Version 2.0 (the "License"); you may\u000a# not use this file except in compliance with the License. You may obtain\u000a# a copy of the License at\u000a#\u000a# http://www.apache.org/licenses/LICENSE-2.0\u000a#\u000a# Unless required by applicable law or agreed to in writing, software\u000a# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT\u000a# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\u000a# License for the specific language governing permissions and limitations\u000a# under the License.\u000a\u000afrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000aLOG = logging.getLogger(__name__)\u000a\u000a# User imports\u000aimport time\u000a\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a    def __init__(self, name, th_result, plugin_conf=None):\u000a        super(Worker, self).__init__(name, th_result, plugin_conf)\u000a\u000a    def run(self):\u000a        LOG.info("Plugin " + self.name + " starting...")\u000a        while(self._is_running):\u000a            print(self.plugin_conf[''message''])\u000a            time.sleep(1) \u000a
-p1
-.',0,'{}','eee383360cc14c44b9bf21e1e003a4f3')
-  ('2017-02-20 10:38:26',NULL,133,'edff22cd-9148-4ad8-b35b-c0c80abf1e8a','zero','0','Vfrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000a\u000aLOG = logging.getLogger(__name__)\u000a\u000a\u000a# User imports\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a   def __init__(self, name, is_running):\u000a       super(Worker, self).__init__(name, is_running)\u000a\u000a   def run(self):\u000a       LOG.info("Plugin process completed!")\u000a       #self.Done()
-p1
-.',1,'{}','eee383360cc14c44b9bf21e1e003a4f3');
+  ('2017-02-20 10:38:26',NULL,'','2','1','3',132),
+  ('2017-02-20 10:38:45',NULL,'','15.5966863','38.2597708','70',133),
+  ('2017-02-20 10:38:45',NULL,'','15.5948288','38.259486','18',134),
+  ('2017-02-20 10:39:08',NULL,'','2','1','3',135);
+# INSERT INTO `plugins` VALUES
+#     ('2017-02-20 10:38:26',NULL,132,'edff22cd-9148-4ad8-b35b-51dcdb60066e','runner','0','V# Copyright 2017 MDSLAB - University of Messina\u000a# All Rights Reserved.\u000a#\u000a# Licensed under the Apache License, Version 2.0 (the "License"); you may\u000a# not use this file except in compliance with the License. You may obtain\u000a# a copy of the License at\u000a#\u000a# http://www.apache.org/licenses/LICENSE-2.0\u000a#\u000a# Unless required by applicable law or agreed to in writing, software\u000a# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT\u000a# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\u000a# License for the specific language governing permissions and limitations\u000a# under the License.\u000a\u000afrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000aLOG = logging.getLogger(__name__)\u000a\u000a# User imports\u000aimport time\u000a\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a    def __init__(self, name, th_result, plugin_conf=None):\u000a        super(Worker, self).__init__(name, th_result, plugin_conf)\u000a\u000a    def run(self):\u000a        LOG.info("Plugin " + self.name + " starting...")\u000a        while(self._is_running):\u000a            print(self.plugin_conf[''message''])\u000a            time.sleep(1) \u000a
+# p1
+# .',0,'{}','eee383360cc14c44b9bf21e1e003a4f3')
+#   ('2017-02-20 10:38:26',NULL,133,'edff22cd-9148-4ad8-b35b-c0c80abf1e8a','zero','0','Vfrom iotronic_lightningrod.plugins import Plugin\u000a\u000afrom oslo_log import log as logging\u000a\u000aLOG = logging.getLogger(__name__)\u000a\u000a\u000a# User imports\u000a\u000a\u000aclass Worker(Plugin.Plugin):\u000a   def __init__(self, name, is_running):\u000a       super(Worker, self).__init__(name, is_running)\u000a\u000a   def run(self):\u000a       LOG.info("Plugin process completed!")\u000a       #self.Done()
+# p1
+# .',1,'{}','eee383360cc14c44b9bf21e1e003a4f3');
+
