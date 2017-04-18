@@ -95,8 +95,72 @@ class PluginCollection(collection.Collection):
         return collection
 
 
+class PublicPluginsController(rest.RestController):
+    """REST controller for Public Plugins."""
+
+    invalid_sort_key_list = ['extra', 'location']
+
+    def _get_plugins_collection(self, marker, limit,
+                                sort_key, sort_dir,
+                                fields=None):
+
+        limit = api_utils.validate_limit(limit)
+        sort_dir = api_utils.validate_sort_dir(sort_dir)
+
+        marker_obj = None
+        if marker:
+            marker_obj = objects.Plugin.get_by_uuid(pecan.request.context,
+                                                    marker)
+
+        if sort_key in self.invalid_sort_key_list:
+            raise exception.InvalidParameterValue(
+                ("The sort_key value %(key)s is an invalid field for "
+                 "sorting") % {'key': sort_key})
+
+        filters = {}
+        filters['public'] = True
+
+        plugins = objects.Plugin.list(pecan.request.context, limit, marker_obj,
+                                      sort_key=sort_key, sort_dir=sort_dir,
+                                      filters=filters)
+
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+
+        return PluginCollection.convert_with_links(plugins, limit,
+                                                   fields=fields,
+                                                   **parameters)
+
+    @expose.expose(PluginCollection, types.uuid, int, wtypes.text,
+                   wtypes.text, types.listtype, types.boolean, types.boolean)
+    def get_all(self, marker=None,
+                limit=None, sort_key='id', sort_dir='asc',
+                fields=None):
+        """Retrieve a list of plugins.
+
+        :param marker: pagination marker for large data sets.
+        :param limit: maximum number of resources to return in a single result.
+                      This value cannot be larger than the value of max_limit
+                      in the [api] section of the ironic configuration, or only
+                      max_limit resources will be returned.
+        :param sort_key: column to sort results by. Default: id.
+        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
+        :param fields: Optional, a list with a specified set of fields
+                       of the resource to be returned.
+        """
+        cdict = pecan.request.context.to_policy_values()
+        policy.authorize('iot:plugin:get', cdict, cdict)
+
+        if fields is None:
+            fields = _DEFAULT_RETURN_FIELDS
+        return self._get_plugins_collection(marker,
+                                            limit, sort_key, sort_dir,
+                                            fields=fields)
+
+
 class PluginsController(rest.RestController):
     """REST controller for Plugins."""
+
+    public = PublicPluginsController()
 
     invalid_sort_key_list = ['extra', 'location']
 
@@ -132,7 +196,7 @@ class PluginsController(rest.RestController):
             if not all_plugins:
                 filters['owner'] = pecan.request.context.user_id
                 if with_public:
-                    filters['public'] = with_public
+                    filters['with_public'] = with_public
 
         plugins = objects.Plugin.list(pecan.request.context, limit, marker_obj,
                                       sort_key=sort_key, sort_dir=sort_dir,

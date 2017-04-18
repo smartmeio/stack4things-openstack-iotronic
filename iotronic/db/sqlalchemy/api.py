@@ -139,7 +139,7 @@ class Connection(api.Connection):
             filters = []
 
         if 'owner' in filters:
-            if 'public' in filters and filters['public']:
+            if 'with_public' in filters and filters['with_public']:
                 query = query.filter(
                     or_(
                         models.Plugin.owner == filters['owner'],
@@ -147,6 +147,9 @@ class Connection(api.Connection):
                 )
             else:
                 query = query.filter(models.Plugin.owner == filters['owner'])
+
+        elif 'public' in filters and filters['public']:
+            query = query.filter(models.Plugin.public == 1)
 
         return query
 
