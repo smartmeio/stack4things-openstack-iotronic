@@ -23,8 +23,8 @@ from iotronic.objects import utils as obj_utils
 
 ACTIONS = ['PluginCall', 'PluginStop', 'PluginStart',
            'PluginStatus', 'PluginReboot']
-CUSTOM_PARAMS = ['PluginCall', 'PluginStart']
-NO_PARAMS = ['PluginStatus', 'PluginReboot']
+CUSTOM_PARAMS = ['PluginCall', 'PluginStart', 'PluginReboot']
+NO_PARAMS = ['PluginStatus']
 
 
 def is_valid_action(action):
