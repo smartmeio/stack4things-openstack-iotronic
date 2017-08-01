@@ -122,7 +122,7 @@ def setup_app(config=None):
     # Create a CORS wrapper, and attach iotronic-specific defaults that must be
     # included in all CORS responses.
     app = cors_middleware.CORS(app, CONF)
-    app.set_latent(
+    cors_middleware.set_defaults(
         allow_headers=[base.Version.max_string, base.Version.min_string,
                        base.Version.string],
         allow_methods=['GET', 'PUT', 'POST', 'DELETE', 'PATCH'],
