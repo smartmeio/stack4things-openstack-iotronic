@@ -1,0 +1,9 @@
+[Unit]
+Description=iotronic-wamp-agent 
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/iotronic-wamp-agent
+
+[Install]
+WantedBy=multi-user.target
