@@ -112,7 +112,7 @@ def dt_serializer(name):
 
     def serializer(self, name=name):
         if getattr(self, name) is not None:
-            return timeutils.isotime(getattr(self, name))
+            return getattr(self, name).isoformat()
         else:
             return None
     return serializer
