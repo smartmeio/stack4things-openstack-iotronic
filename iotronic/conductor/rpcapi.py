@@ -249,3 +249,17 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'update_service', service_obj=service_obj)
+
+    def action_service(self, context, service_uuid,
+                       board_uuid, action, topic=None):
+        """Action on a service into a board.
+
+        :param context: request context.
+        :param service_uuid: service id or uuid.
+        :param board_uuid: board id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+
+        return cctxt.call(context, 'action_service', service_uuid=service_uuid,
+                          board_uuid=board_uuid, action=action)

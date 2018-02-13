@@ -21,27 +21,14 @@ from iotronic.db import api as db_api
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
 
-"""
-ACTIONS = ['ServiceCall', 'ServiceStop', 'ServiceStart',
-           'ServiceStatus', 'ServiceReboot']
-CUSTOM_PARAMS = ['ServiceCall', 'ServiceStart', 'ServiceReboot']
-NO_PARAMS = ['ServiceStatus']
+
+ACTIONS = ['ServiceEnable', 'ServiceDisable', 'ServiceRestore']
 
 
 def is_valid_action(action):
     if action not in ACTIONS:
         raise exception.InvalidServiceAction(action=action)
     return True
-
-
-def want_customs_params(action):
-    return True if action in CUSTOM_PARAMS else False
-
-
-def want_params(action):
-    return False if action in NO_PARAMS else True
-
-"""
 
 
 class Service(base.IotronicObject):
@@ -154,6 +141,7 @@ class Service(base.IotronicObject):
                         object, e.g.: Service(context)
 
         """
+
         values = self.obj_get_changes()
         db_service = self.dbapi.create_service(values)
         self._from_db_object(self, db_service)

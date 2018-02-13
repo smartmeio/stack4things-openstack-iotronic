@@ -473,3 +473,57 @@ class Connection(object):
         :raises: ServiceAssociated
         :raises: ServiceNotFound
         """
+
+    @abc.abstractmethod
+    def get_exposed_service_by_board_uuid(self, board_uuid):
+        """get an exposed of a service using a board_uuid
+
+        :param board_uuid: The id or uuid of a board.
+        :returns: An exposed_service.
+
+        """
+
+    @abc.abstractmethod
+    def get_exposed_service_by_uuids(self, board_uuid, service_uuid):
+        """get an exposed of a service using a board_uuid and service_uuid
+
+        :param board_uuid: The id or uuid of a board.
+        :param service_uuid: The id or uuid of a service.
+        :returns: An exposed_service.
+
+        """
+
+    @abc.abstractmethod
+    def create_exposed_service(self, values):
+        """Create a new exposed_service.
+
+        :param values: A dict containing several items used to identify
+                       and track the service
+        :returns: An exposed service.
+        """
+
+    @abc.abstractmethod
+    def destroy_exposed_service(self, exposed_service_id):
+        """Destroy an exposed service and all associated interfaces.
+
+        :param exposed_service_id: The id or uuid of a service.
+        """
+
+    @abc.abstractmethod
+    def update_exposed_service(self, service_exposed_id, values):
+        """Update properties of a service.
+
+        :param service_id: The id or uuid of a service.
+        :param values: Dict of values to update.
+        :returns: A service.
+        :raises: ServiceAssociated
+        :raises: ServiceNotFound
+        """
+
+    @abc.abstractmethod
+    def get_exposed_service_list(self, board_uuid):
+        """Return a list of exposed_services.
+
+        :param board_uuid: The id or uuid of a service.
+        :returns: A list of ExposedServices on the board.
+        """

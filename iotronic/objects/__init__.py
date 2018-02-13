@@ -14,6 +14,7 @@
 
 from iotronic.objects import board
 from iotronic.objects import conductor
+from iotronic.objects import exposedservice
 from iotronic.objects import injectionplugin
 from iotronic.objects import location
 from iotronic.objects import plugin
@@ -26,6 +27,7 @@ Board = board.Board
 Location = location.Location
 Plugin = plugin.Plugin
 InjectionPlugin = injectionplugin.InjectionPlugin
+ExposedService = exposedservice.ExposedService
 SessionWP = sessionwp.SessionWP
 WampAgent = wampagent.WampAgent
 Service = service.Service
@@ -39,4 +41,5 @@ __all__ = (
     Service,
     Plugin,
     InjectionPlugin,
+    ExposedService
 )

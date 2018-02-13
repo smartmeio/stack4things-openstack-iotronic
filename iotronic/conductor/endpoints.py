@@ -39,6 +39,26 @@ def get_best_agent(ctx):
     return agent.hostname
 
 
+def random_public_port():
+    return random.randint(6000, 7000)
+
+
+def manage_result(res, wamp_rpc_call, board_uuid):
+    if res.result == wm.SUCCESS:
+        return res.message
+    elif res.result == wm.WARNING:
+        LOG.warning('Warning in the execution of %s on %s', wamp_rpc_call,
+                    board_uuid)
+        return res.message
+    elif res.result == wm.ERROR:
+        LOG.error('Error in the execution of %s on %s: %s', wamp_rpc_call,
+                  board_uuid, res.message)
+        raise exception.ErrorExecutionOnBoard(call=wamp_rpc_call,
+                                              board=board_uuid,
+                                              error=res.message)
+    return res.message
+
+
 class ConductorEndpoint(object):
     def __init__(self, ragent):
         transport = oslo_messaging.get_transport(cfg.CONF)
@@ -119,10 +139,12 @@ class ConductorEndpoint(object):
                                                board_id,
                                                'destroyBoard',
                                                (p,))
+
             except exception:
                 return exception
         board.destroy()
         if result:
+            result = manage_result(result, 'destroyBoard', board_id)
             LOG.debug(result)
             return result
         return
@@ -164,18 +186,7 @@ class ConductorEndpoint(object):
                                           data=wamp_rpc_args)
         res = wm.deserialize(res)
 
-        if res.result == wm.SUCCESS:
-            return res.message
-        elif res.result == wm.WARNING:
-            LOG.warning('Warning in the execution of %s on %s', wamp_rpc_call,
-                        board_uuid)
-            return res.message
-        elif res.result == wm.ERROR:
-            LOG.error('Error in the execution of %s on %s: %s', wamp_rpc_call,
-                      board_uuid, res.message)
-            raise exception.ErrorExecutionOnBoard(call=wamp_rpc_call,
-                                                  board=board.uuid,
-                                                  error=res.message)
+        return res
 
     def destroy_plugin(self, ctx, plugin_id):
         LOG.info('Destroying plugin with id %s',
@@ -231,7 +242,9 @@ class ConductorEndpoint(object):
             injection = objects.InjectionPlugin(ctx, **inj_data)
             injection.create()
 
+        result = manage_result(result, 'PluginInject', board_uuid)
         LOG.debug(result)
+
         return result
 
     def remove_plugin(self, ctx, plugin_uuid, board_uuid):
@@ -247,7 +260,7 @@ class ConductorEndpoint(object):
                                            (plugin.uuid,))
         except exception:
             return exception
-
+        result = manage_result(result, 'PluginRemove', board_uuid)
         LOG.debug(result)
         injection.destroy()
         return result
@@ -267,7 +280,7 @@ class ConductorEndpoint(object):
                                                (plugin.uuid,))
         except exception:
             return exception
-
+        result = manage_result(result, action, board_uuid)
         LOG.debug(result)
         return result
 
@@ -290,3 +303,151 @@ class ConductorEndpoint(object):
         LOG.debug('Updating service %s', service.name)
         service.save()
         return serializer.serialize_entity(ctx, service)
+
+    def action_service(self, ctx, service_uuid, board_uuid, action):
+        LOG.info('Enable service with id %s into the board %s',
+                 service_uuid, board_uuid)
+        service = objects.Service.get(ctx, service_uuid)
+        objects.service.is_valid_action(action)
+
+        if action == "ServiceEnable":
+            try:
+                objects.ExposedService.get(ctx,
+                                           board_uuid,
+                                           service_uuid)
+                return exception.ServiceAlreadyExposed(uuid=service_uuid)
+            except Exception:
+                name = service.name
+                public_port = random_public_port()
+                port = service.port
+
+                res = self.execute_on_board(ctx, board_uuid, action,
+                                            (name, public_port, port))
+
+                if res.result == wm.SUCCESS:
+                    pid = res.message[0]
+
+                    exp_data = {
+                        'board_uuid': board_uuid,
+                        'service_uuid': service_uuid,
+                        'public_port': public_port,
+                        'pid': pid,
+                    }
+                    exposed = objects.ExposedService(ctx, **exp_data)
+                    exposed.create()
+
+                    res.message = res.message[1]
+                elif res.result == wm.ERROR:
+                    LOG.error('Error in the execution of %s on %s: %s',
+                              action,
+                              board_uuid, res.message)
+                    raise exception.ErrorExecutionOnBoard(call=action,
+                                                          board=board_uuid,
+                                                          error=res.message)
+                LOG.debug(res.message)
+                return res.message
+
+        elif action == "ServiceDisable":
+            exposed = objects.ExposedService.get(ctx,
+                                                 board_uuid,
+                                                 service_uuid)
+
+            res = self.execute_on_board(ctx, board_uuid, action,
+                                        (service.name, exposed.pid))
+
+            result = manage_result(res, action, board_uuid)
+            LOG.debug(res.message)
+            exposed.destroy()
+            return result
+
+        elif action == "ServiceRestore":
+
+            exposed = objects.ExposedService.get(ctx, board_uuid,
+                                                 service_uuid)
+
+            print(exposed)
+
+            res = self.execute_on_board(ctx, board_uuid, action,
+                                        (service.name, exposed.public_port,
+                                         service.port, exposed.pid))
+
+            if res.result == wm.SUCCESS:
+                pid = res.message[0]
+
+                exp_data = {
+                    'id': exposed.id,
+                    'board_uuid': board_uuid,
+                    'service_uuid': service_uuid,
+                    'public_port': exposed.public_port,
+                    'pid': pid,
+                }
+
+                exposed = objects.ExposedService(ctx, **exp_data)
+                exposed.save()
+
+                res.message = res.message[1]
+            elif res.result == wm.ERROR:
+                LOG.error('Error in the execution of %s on %s: %s',
+                          action,
+                          board_uuid, res.message)
+                raise exception.ErrorExecutionOnBoard(call=action,
+                                                      board=board_uuid,
+                                                      error=res.message)
+            LOG.debug(res.message)
+            return res.message
+
+            # try:
+            #
+            #
+            #     return exception.ServiceAlreadyExposed(uuid=service_uuid)
+            # except:
+            #     name=service.name
+            #     public_port=random_public_port()
+            #     port=service.port
+            #
+            #     res = self.execute_on_board(ctx, board_uuid, action,
+            #                                 (name, public_port, port))
+            #
+            #     if res.result == wm.SUCCESS:
+            #         pid = res.message[0]
+            #
+            #         exp_data = {
+            #             'board_uuid': board_uuid,
+            #             'service_uuid': service_uuid,
+            #             'public_port': public_port,
+            #             'pid': pid,
+            #         }
+            #         exposed = objects.ExposedService(ctx, **exp_data)
+            #         exposed.create()
+            #
+            #         res.message = res.message[1]
+            #     elif res.result == wm.ERROR:
+            #         LOG.error('Error in the execution of %s on %s: %s',
+            #                   action,
+            #                   board_uuid, res.message)
+            #         raise exception.ErrorExecutionOnBoard(call=action,
+            #                                               board=board_uuid,
+            #                                               error=res.message)
+            #     LOG.debug(res.message)
+            #     return res.message
+            #
+            #
+            #
+            #
+            #
+            #
+            #
+            #
+            #
+            #
+            #
+            # exposed = objects.ExposedService.get(ctx, board_uuid,
+            #                                          service_uuid)
+            #
+            # res = self.execute_on_board(ctx, board_uuid, action,
+            #                             (service.name, exposed.pid))
+            #
+            # result=manage_result(res,action,board_uuid)
+            # LOG.debug(res.message)
+            # exposed.destroy()
+            # return result

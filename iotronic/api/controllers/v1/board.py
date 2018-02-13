@@ -152,7 +152,46 @@ class InjectionCollection(collection.Collection):
         return collection
 
 
+class ExposedService(base.APIBase):
+    service = types.uuid_or_name
+    board_uuid = types.uuid_or_name
+    public_port = wsme.types.IntegerType()
+
+    def __init__(self, **kwargs):
+        self.fields = []
+        fields = list(objects.ExposedService.fields)
+        fields.remove('board_uuid')
+        for k in fields:
+            # Skip fields we do not expose.
+            if not hasattr(self, k):
+                continue
+            self.fields.append(k)
+            setattr(self, k, kwargs.get(k, wtypes.Unset))
+        setattr(self, 'service', kwargs.get('service_uuid', wtypes.Unset))
+
+
+class ExposedCollection(collection.Collection):
+    """API representation of a collection of injection."""
+
+    exposed = [ExposedService]
+
+    def __init__(self, **kwargs):
+        self._type = 'exposed'
+
+    @staticmethod
+    def get_list(exposed, fields=None):
+        collection = ExposedCollection()
+        collection.exposed = [ExposedService(**n.as_dict())
+                              for n in exposed]
+        return collection
+
+
 class PluginAction(base.APIBase):
+    action = wsme.wsattr(wtypes.text)
+    parameters = types.jsontype
+
+
+class ServiceAction(base.APIBase):
     action = wsme.wsattr(wtypes.text)
     parameters = types.jsontype
 
@@ -282,11 +321,72 @@ class BoardPluginsController(rest.RestController):
                                                   rpc_board.uuid)
 
 
+class BoardServicesController(rest.RestController):
+    _custom_actions = {
+        'action': ['POST'],
+    }
+
+    def __init__(self, board_ident):
+        self.board_ident = board_ident
+
+    def _get_services_on_board_collection(self, board_uuid, fields=None):
+        services = objects.ExposedService.list(pecan.request.context,
+                                               board_uuid)
+
+        return ExposedCollection.get_list(services,
+                                          fields=fields)
+
+    @expose.expose(ExposedCollection,
+                   status_code=200)
+    def get_all(self):
+        """Retrieve a list of services of a board.
+
+        """
+        rpc_board = api_utils.get_rpc_board(self.board_ident)
+
+        cdict = pecan.request.context.to_policy_values()
+        cdict['project_id'] = rpc_board.project
+        policy.authorize('iot:service_on_board:get', cdict, cdict)
+
+        return self._get_services_on_board_collection(rpc_board.uuid)
+
+    @expose.expose(wtypes.text, types.uuid_or_name, body=ServiceAction,
+                   status_code=200)
+    def action(self, service_ident, ServiceAction):
+
+        if not ServiceAction.action:
+            raise exception.MissingParameterValue(
+                ("Action is not specified."))
+
+        if not ServiceAction.parameters:
+            ServiceAction.parameters = {}
+
+        rpc_board = api_utils.get_rpc_board(self.board_ident)
+        rpc_service = api_utils.get_rpc_service(service_ident)
+
+        try:
+            cdict = pecan.request.context.to_policy_values()
+            cdict['owner'] = rpc_board.owner
+            policy.authorize('iot:service_action:post', cdict, cdict)
+
+        except exception:
+            return exception
+
+        rpc_board.check_if_online()
+
+        result = pecan.request.rpcapi.action_service(pecan.request.context,
+                                                     rpc_service.uuid,
+                                                     rpc_board.uuid,
+                                                     ServiceAction.action)
+        return result
+
+
 class BoardsController(rest.RestController):
     """REST controller for Boards."""
 
     _subcontroller_map = {
         'plugins': BoardPluginsController,
+        'services': BoardServicesController,
     }
 
     invalid_sort_key_list = ['extra', 'location']

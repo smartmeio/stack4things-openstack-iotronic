@@ -597,3 +597,15 @@ class ErrorExecutionOnBoard(IotronicException):
 
 class ServiceNotFound(NotFound):
     message = _("Service %(Service)s could not be found.")
+
+
+class ServiceAlreadyExists(Conflict):
+    message = _("A Service with UUID %(uuid)s already exists.")
+
+
+class ServiceAlreadyExposed(Conflict):
+    message = _("A Service with UUID %(uuid)s already exposed.")
+
+
+class ExposedServiceNotFound(NotFound):
+    message = _("ExposedService %(uuid)s could not be found.")

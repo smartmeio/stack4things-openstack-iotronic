@@ -761,3 +761,84 @@ class Connection(api.Connection):
 
             ref.update(values)
         return ref
+
+    # EXPOSED SERVICE api
+
+    def get_exposed_service_by_board_uuid(self, board_uuid):
+        query = model_query(
+            models.ExposedService).filter_by(
+            board_uuid=board_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ExposedServiceNotFound()
+
+    def create_exposed_service(self, values):
+        # ensure defaults are present for new services
+        if 'uuid' not in values:
+            values['uuid'] = uuidutils.generate_uuid()
+        exp_serv = models.ExposedService()
+        exp_serv.update(values)
+        try:
+            exp_serv.save()
+        except db_exc.DBDuplicateEntry:
+            raise exception.ServiceAlreadyExposed(uuid=values['uuid'])
+        return exp_serv
+
+    def update_exposed_service(self, service_exposed_id, values):
+
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Service.")
+            raise exception.InvalidParameterValue(err=msg)
+        try:
+            return self._do_update_exposed_service(
+                service_exposed_id, values)
+
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'uuid' in e.columns:
+                raise exception.ServiceAlreadyExists(uuid=values['uuid'])
+            else:
+                raise e
+
+    def get_exposed_service_by_uuids(self, board_uuid, service_uuid):
+        query = model_query(
+            models.ExposedService).filter_by(
+            board_uuid=board_uuid).filter_by(
+            service_uuid=service_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ExposedServiceNotFound(uuid=service_uuid)
+
+    def destroy_exposed_service(self, exposed_service_id):
+
+        session = get_session()
+        with session.begin():
+            query = model_query(models.ExposedService, session=session)
+            query = add_identity_filter(query, exposed_service_id)
+            try:
+                query.delete()
+
+            except NoResultFound:
+                raise exception.ExposedServiceNotFound()
+
+    def get_exposed_service_list(self, board_uuid):
+        query = model_query(
+            models.ExposedService).filter_by(
+            board_uuid=board_uuid)
+        return query.all()
+
+    def _do_update_exposed_service(self, service_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.ExposedService, session=session)
+            query = add_identity_filter(query, service_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.ServiceNotFoundNotFound(uuid=service_id)
+
+            ref.update(values)
+        return ref
