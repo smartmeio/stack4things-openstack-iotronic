@@ -475,7 +475,7 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_exposed_service_by_board_uuid(self, board_uuid):
+    def get_exposed_services_by_board_uuid(self, board_uuid):
         """get an exposed of a service using a board_uuid
 
         :param board_uuid: The id or uuid of a board.

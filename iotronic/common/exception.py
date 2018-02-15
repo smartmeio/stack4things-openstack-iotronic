@@ -609,3 +609,7 @@ class ServiceAlreadyExposed(Conflict):
 
 class ExposedServiceNotFound(NotFound):
     message = _("ExposedService %(uuid)s could not be found.")
+
+
+class NoExposedServices(NotFound):
+    message = _("No exposed services on the board %(uuid)s.")

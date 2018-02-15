@@ -305,12 +305,12 @@ class ConductorEndpoint(object):
         return serializer.serialize_entity(ctx, service)
 
     def action_service(self, ctx, service_uuid, board_uuid, action):
-        LOG.info('Enable service with id %s into the board %s',
-                 service_uuid, board_uuid)
         service = objects.Service.get(ctx, service_uuid)
         objects.service.is_valid_action(action)
 
         if action == "ServiceEnable":
+            LOG.info('Enabling service with id %s into the board %s',
+                     service_uuid, board_uuid)
             try:
                 objects.ExposedService.get(ctx,
                                            board_uuid,
@@ -348,6 +348,8 @@ class ConductorEndpoint(object):
                 return res.message
 
         elif action == "ServiceDisable":
+            LOG.info('Disabling service with id %s into the board %s',
+                     service_uuid, board_uuid)
             exposed = objects.ExposedService.get(ctx,
                                                  board_uuid,
                                                  service_uuid)
@@ -361,11 +363,10 @@ class ConductorEndpoint(object):
             return result
 
         elif action == "ServiceRestore":
-
+            LOG.info('Restoring service with id %s into the board %s',
+                     service_uuid, board_uuid)
             exposed = objects.ExposedService.get(ctx, board_uuid,
                                                  service_uuid)
-
-            print(exposed)
 
             res = self.execute_on_board(ctx, board_uuid, action,
                                         (service.name, exposed.public_port,
@@ -396,58 +397,41 @@ class ConductorEndpoint(object):
             LOG.debug(res.message)
             return res.message
 
-            # try:
-            #
-            #
-            #     return exception.ServiceAlreadyExposed(uuid=service_uuid)
-            # except:
-            #     name=service.name
-            #     public_port=random_public_port()
-            #     port=service.port
-            #
-            #     res = self.execute_on_board(ctx, board_uuid, action,
-            #                                 (name, public_port, port))
-            #
-            #     if res.result == wm.SUCCESS:
-            #         pid = res.message[0]
-            #
-            #         exp_data = {
-            #             'board_uuid': board_uuid,
-            #             'service_uuid': service_uuid,
-            #             'public_port': public_port,
-            #             'pid': pid,
-            #         }
-            #         exposed = objects.ExposedService(ctx, **exp_data)
-            #         exposed.create()
-            #
-            #         res.message = res.message[1]
-            #     elif res.result == wm.ERROR:
-            #         LOG.error('Error in the execution of %s on %s: %s',
-            #                   action,
-            #                   board_uuid, res.message)
-            #         raise exception.ErrorExecutionOnBoard(call=action,
-            #                                               board=board_uuid,
-            #                                               error=res.message)
-            #     LOG.debug(res.message)
-            #     return res.message
-            #
-            #
-            #
-            #
-            #
-            #
-            #
-            #
-            #
-            #
-            #
-            # exposed = objects.ExposedService.get(ctx, board_uuid,
-            #                                          service_uuid)
-            #
-            # res = self.execute_on_board(ctx, board_uuid, action,
-            #                             (service.name, exposed.pid))
-            #
-            # result=manage_result(res,action,board_uuid)
-            # LOG.debug(res.message)
-            # exposed.destroy()
-            # return result
+    def restore_services_on_board(self, ctx, board_uuid):
+        LOG.info('Restoring the services into the board %s',
+                 board_uuid)
+
+        exposed_list = objects.ExposedService.get_by_board_uuid(ctx,
+                                                                board_uuid)
+
+        # response = []
+        for exposed in exposed_list:
+            service = objects.Service.get_by_uuid(ctx, exposed.service_uuid)
+            res = self.execute_on_board(ctx, board_uuid, "ServiceRestore",
+                                        (service.name, exposed.public_port,
+                                         service.port, exposed.pid))
+
+            if res.result == wm.SUCCESS:
+                pid = res.message[0]
+
+                exp_data = {
+                    'id': exposed.id,
+                    'board_uuid': exposed.board_uuid,
+                    'service_uuid': exposed.service_uuid,
+                    'public_port': exposed.public_port,
+                    'pid': pid,
+                }
+
+                exposed = objects.ExposedService(ctx, **exp_data)
+                exposed.save()
+
+                # response.append(exposed)
+            elif res.result == wm.ERROR:
+                LOG.error('Error in restoring %s on %s: %s',
+                          service.name,
+                          board_uuid, res.message)
+                raise exception.ErrorExecutionOnBoard(call="ServiceRestore",
+                                                      board=board_uuid,
+                                                      error=res.message)
+
+        return 0
