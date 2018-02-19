@@ -764,14 +764,14 @@ class Connection(api.Connection):
 
     # EXPOSED SERVICE api
 
-    def get_exposed_service_by_board_uuid(self, board_uuid):
+    def get_exposed_services_by_board_uuid(self, board_uuid):
         query = model_query(
             models.ExposedService).filter_by(
             board_uuid=board_uuid)
         try:
-            return query.one()
+            return query.all()
         except NoResultFound:
-            raise exception.ExposedServiceNotFound()
+            raise exception.NoExposedServices(uuid=board_uuid)
 
     def create_exposed_service(self, values):
         # ensure defaults are present for new services

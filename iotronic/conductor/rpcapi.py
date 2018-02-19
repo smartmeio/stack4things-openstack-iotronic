@@ -263,3 +263,16 @@ class ConductorAPI(object):
 
         return cctxt.call(context, 'action_service', service_uuid=service_uuid,
                           board_uuid=board_uuid, action=action)
+
+    def restore_services_on_board(self, context,
+                                  board_uuid, topic=None):
+        """Restore all the services on a board.
+
+        :param context: request context.
+        :param board_uuid: board id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+
+        return cctxt.call(context, 'restore_services_on_board',
+                          board_uuid=board_uuid)

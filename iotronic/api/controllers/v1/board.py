@@ -322,8 +322,10 @@ class BoardPluginsController(rest.RestController):
 
 
 class BoardServicesController(rest.RestController):
+
     _custom_actions = {
         'action': ['POST'],
+        'restore': ['GET']
     }
 
     def __init__(self, board_ident):
@@ -358,9 +360,6 @@ class BoardServicesController(rest.RestController):
             raise exception.MissingParameterValue(
                 ("Action is not specified."))
 
-        if not ServiceAction.parameters:
-            ServiceAction.parameters = {}
-
         rpc_board = api_utils.get_rpc_board(self.board_ident)
         rpc_service = api_utils.get_rpc_service(service_ident)
 
@@ -379,6 +378,27 @@ class BoardServicesController(rest.RestController):
                                                      rpc_board.uuid,
                                                      ServiceAction.action)
         return result
+
+    @expose.expose(ExposedCollection,
+                   status_code=200)
+    def restore(self):
+        rpc_board = api_utils.get_rpc_board(self.board_ident)
+
+        try:
+            cdict = pecan.request.context.to_policy_values()
+            cdict['owner'] = rpc_board.owner
+            policy.authorize('iot:service_action:post', cdict, cdict)
+
+        except exception:
+            return exception
+
+        rpc_board.check_if_online()
+
+        pecan.request.rpcapi.restore_services_on_board(
+            pecan.request.context,
+            rpc_board.uuid)
+
+        return self._get_services_on_board_collection(rpc_board.uuid)
 
 
 class BoardsController(rest.RestController):

@@ -55,16 +55,20 @@ class ExposedService(base.IotronicObject):
 
     @base.remotable_classmethod
     def get_by_board_uuid(cls, context, board_uuid):
-        """Find a exposed_service based on uuid and return a Board object.
+        """Return a list of ExposedService objects.
 
-        :param board_uuid: the uuid of a exposed_service.
-        :returns: a :class:`exposed_service` object.
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param filters: Filters to apply.
+        :returns: a list of :class:`ExposedService` object.
+
         """
-        db_exp_service = cls.dbapi.get_exposed_service_by_board_uuid(
-            board_uuid)
-        exp_service = ExposedService._from_db_object(cls(context),
-                                                     db_exp_service)
-        return exp_service
+        db_exps = cls.dbapi.get_exposed_services_by_board_uuid(board_uuid)
+        return [ExposedService._from_db_object(cls(context), obj)
+                for obj in db_exps]
 
     @base.remotable_classmethod
     def get_by_service_uuid(cls, context, service_uuid):
