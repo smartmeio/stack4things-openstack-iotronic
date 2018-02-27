@@ -151,11 +151,9 @@ class WampManager(object):
                                      u'stack4things.register')
                     LOG.info("I have been set as registration agent")
                 session.register(fun.connection,
-                                 AGENT_HOST +
-                                 + u'.stack4things.connection')
+                                 AGENT_HOST + u'.stack4things.connection')
                 session.register(fun.echo,
-                                 AGENT_HOST +
-                                 + u'.stack4things.echo')
+                                 AGENT_HOST + u'.stack4things.echo')
                 LOG.debug("procedure registered")
 
             except Exception as e:
