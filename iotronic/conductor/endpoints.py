@@ -317,35 +317,22 @@ class ConductorEndpoint(object):
                                            service_uuid)
                 return exception.ServiceAlreadyExposed(uuid=service_uuid)
             except Exception:
-                name = service.name
                 public_port = random_public_port()
-                port = service.port
 
                 res = self.execute_on_board(ctx, board_uuid, action,
-                                            (name, public_port, port))
+                                            (service, public_port))
+                result = manage_result(res, action, board_uuid)
 
-                if res.result == wm.SUCCESS:
-                    pid = res.message[0]
+                exp_data = {
+                    'board_uuid': board_uuid,
+                    'service_uuid': service_uuid,
+                    'public_port': public_port,
+                }
+                exposed = objects.ExposedService(ctx, **exp_data)
+                exposed.create()
 
-                    exp_data = {
-                        'board_uuid': board_uuid,
-                        'service_uuid': service_uuid,
-                        'public_port': public_port,
-                        'pid': pid,
-                    }
-                    exposed = objects.ExposedService(ctx, **exp_data)
-                    exposed.create()
-
-                    res.message = res.message[1]
-                elif res.result == wm.ERROR:
-                    LOG.error('Error in the execution of %s on %s: %s',
-                              action,
-                              board_uuid, res.message)
-                    raise exception.ErrorExecutionOnBoard(call=action,
-                                                          board=board_uuid,
-                                                          error=res.message)
-                LOG.debug(res.message)
-                return res.message
+                LOG.debug(result)
+                return result
 
         elif action == "ServiceDisable":
             LOG.info('Disabling service with id %s into the board %s',
@@ -355,7 +342,7 @@ class ConductorEndpoint(object):
                                                  service_uuid)
 
             res = self.execute_on_board(ctx, board_uuid, action,
-                                        (service.name, exposed.pid))
+                                        (service,))
 
             result = manage_result(res, action, board_uuid)
             LOG.debug(res.message)
@@ -369,33 +356,11 @@ class ConductorEndpoint(object):
                                                  service_uuid)
 
             res = self.execute_on_board(ctx, board_uuid, action,
-                                        (service.name, exposed.public_port,
-                                         service.port, exposed.pid))
+                                        (service, exposed.public_port))
 
-            if res.result == wm.SUCCESS:
-                pid = res.message[0]
-
-                exp_data = {
-                    'id': exposed.id,
-                    'board_uuid': board_uuid,
-                    'service_uuid': service_uuid,
-                    'public_port': exposed.public_port,
-                    'pid': pid,
-                }
-
-                exposed = objects.ExposedService(ctx, **exp_data)
-                exposed.save()
-
-                res.message = res.message[1]
-            elif res.result == wm.ERROR:
-                LOG.error('Error in the execution of %s on %s: %s',
-                          action,
-                          board_uuid, res.message)
-                raise exception.ErrorExecutionOnBoard(call=action,
-                                                      board=board_uuid,
-                                                      error=res.message)
-            LOG.debug(res.message)
-            return res.message
+            result = manage_result(res, action, board_uuid)
+            LOG.debug(result)
+            return result
 
     def restore_services_on_board(self, ctx, board_uuid):
         LOG.info('Restoring the services into the board %s',
@@ -404,34 +369,9 @@ class ConductorEndpoint(object):
         exposed_list = objects.ExposedService.get_by_board_uuid(ctx,
                                                                 board_uuid)
 
-        # response = []
         for exposed in exposed_list:
             service = objects.Service.get_by_uuid(ctx, exposed.service_uuid)
-            res = self.execute_on_board(ctx, board_uuid, "ServiceRestore",
-                                        (service.name, exposed.public_port,
-                                         service.port, exposed.pid))
-
-            if res.result == wm.SUCCESS:
-                pid = res.message[0]
-
-                exp_data = {
-                    'id': exposed.id,
-                    'board_uuid': exposed.board_uuid,
-                    'service_uuid': exposed.service_uuid,
-                    'public_port': exposed.public_port,
-                    'pid': pid,
-                }
-
-                exposed = objects.ExposedService(ctx, **exp_data)
-                exposed.save()
-
-                # response.append(exposed)
-            elif res.result == wm.ERROR:
-                LOG.error('Error in restoring %s on %s: %s',
-                          service.name,
-                          board_uuid, res.message)
-                raise exception.ErrorExecutionOnBoard(call="ServiceRestore",
-                                                      board=board_uuid,
-                                                      error=res.message)
+            self.execute_on_board(ctx, board_uuid, "ServiceRestore",
+                                  (service, exposed.public_port))
 
         return 0

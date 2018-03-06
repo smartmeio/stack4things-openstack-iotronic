@@ -167,11 +167,10 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`exposed_services` (
   `board_uuid` VARCHAR(36) NOT NULL,
   `service_uuid` VARCHAR(36) NOT NULL,
   `public_port` INT(5) NOT NULL,
-  `pid` INT(5) NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `board_uuid` (`board_uuid` ASC),
   CONSTRAINT unique_index
-  UNIQUE (service_uuid, board_uuid, pid),
+  UNIQUE (service_uuid, board_uuid),
   CONSTRAINT `fk_board_uuid`
     FOREIGN KEY (`board_uuid`)
     REFERENCES `iotronic`.`boards` (`uuid`)

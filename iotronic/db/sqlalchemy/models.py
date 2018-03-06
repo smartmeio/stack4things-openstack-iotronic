@@ -248,4 +248,3 @@ class ExposedService(Base):
     board_uuid = Column(String(36), ForeignKey('boards.uuid'))
     service_uuid = Column(String(36), ForeignKey('services.uuid'))
     public_port = Column(Integer)
-    pid = Column(Integer)

@@ -28,8 +28,7 @@ class ExposedService(base.IotronicObject):
         'id': int,
         'board_uuid': obj_utils.str_or_none,
         'service_uuid': obj_utils.str_or_none,
-        'public_port': int,
-        'pid': int
+        'public_port': int
     }
 
     @staticmethod
