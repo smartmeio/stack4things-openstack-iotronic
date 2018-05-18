@@ -205,7 +205,7 @@ class ConductorEndpoint(object):
         new_plugin = serializer.deserialize_entity(ctx, plugin_obj)
         LOG.debug('Creating plugin %s',
                   new_plugin.name)
-        new_plugin.code = cpickle.dumps(new_plugin.code, 0)
+        new_plugin.code = cpickle.dumps(new_plugin.code, 0).decode()
         new_plugin.create()
         return serializer.serialize_entity(ctx, new_plugin)
 
