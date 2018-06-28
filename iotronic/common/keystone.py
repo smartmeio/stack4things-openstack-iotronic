@@ -46,7 +46,7 @@ def _is_apiv3(auth_url, auth_version):
 
 
 def _get_ksclient(token=None):
-    auth_url = CONF.keystone_authtoken.auth_uri
+    auth_url = CONF.keystone_authtoken.www_authenticate_uri
     if not auth_url:
         raise exception.KeystoneFailure(_('Keystone API endpoint is missing'))
 
