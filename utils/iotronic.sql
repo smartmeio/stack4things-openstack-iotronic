@@ -200,7 +200,7 @@ CREATE TABLE IF NOT EXISTS `iotronic`.`services` (
   `name` VARCHAR(255) NULL DEFAULT NULL,
   `port` INT(5) NOT NULL,
   `project` VARCHAR(36) NOT NULL,
-  `protocol` VARCHAR(3) NOT NULL,
+  `protocol` VARCHAR(10) NOT NULL,
   `extra` TEXT NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid` ASC))
