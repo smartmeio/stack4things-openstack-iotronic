@@ -136,6 +136,22 @@ service_policies = [
 
 ]
 
+port_on_board_policies = [
+    policy.RuleDefault('iot:port_on_board:get',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Service records'),
+    policy.RuleDefault('iot:port_on_board:create',
+                       'rule:is_iot_member',
+                       description='Create Service records'),
+    policy.RuleDefault('iot:port_on_board:get_one', 'rule:admin_or_owner',
+                       description='Retrieve a Service record'),
+    policy.RuleDefault('iot:port_on_board:delete', 'rule:admin_or_owner',
+                       description='Delete Service records'),
+    policy.RuleDefault('iot:port_on_board:update', 'rule:admin_or_owner',
+                       description='Update Service records'),
+
+]
+
 exposed_service_policies = [
     policy.RuleDefault('iot:service_on_board:get',
                        'rule:admin_or_owner',
@@ -158,6 +174,7 @@ def list_policies():
                 + injection_plugin_policies
                 + service_policies
                 + exposed_service_policies
+                + port_on_board_policies
                 )
     return policies
 
