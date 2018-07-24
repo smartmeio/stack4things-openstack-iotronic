@@ -12,7 +12,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 import asyncio
 import subprocess
 import time
@@ -29,6 +28,7 @@ from oslo_messaging.rpc import dispatcher
 
 from threading import Thread
 
+import ssl
 
 import os
 import signal
@@ -46,7 +46,12 @@ wamp_opts = [
                help=('realm broker')),
     cfg.BoolOpt('register_agent',
                 default=False,
-                help=('Flag for se a registration agent')),
+                help=('Flag for marking this agent as a registration agent')),
+    cfg.BoolOpt('skip_cert_verify',
+                default=False,
+                help=(
+                    'Flag for skipping the verification of the server cert '
+                    '(for the auto-signed ones)')),
     cfg.IntOpt('autoPingInterval',
                default=2,
                help=('autoPingInterval parameter for wamp')),
@@ -76,7 +81,6 @@ async def wamp_request(kwarg):
 # OSLO ENDPOINT
 class WampEndpoint(object):
     def __init__(self, agent_uuid):
-
         setattr(self, agent_uuid + '.s4t_invoke_wamp', self.s4t_invoke_wamp)
 
         setattr(self, agent_uuid + '.create_tap_interface',
@@ -149,8 +153,32 @@ class WampManager(object):
         global LOOP
         LOOP = self.loop
 
+        wamp_transport = CONF.wamp.wamp_transport_url
+        wurl_list = wamp_transport.split(':')
+        is_wss = False
+        if wurl_list[0] == "wss":
+            is_wss = True
+        whost = wurl_list[1].replace('/', '')
+        wport = int(wurl_list[2].replace('/', ''))
+
+        if is_wss and CONF.wamp.skip_cert_verify:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            wamp_transport = [
+                {
+                    "url": CONF.wamp.wamp_transport_url,
+                    "endpoint": {
+                        "type": "tcp",
+                        "host": whost,
+                        "port": wport,
+                        "tls": ctx
+                    },
+                },
+            ]
+
         comp = Component(
-            transports=CONF.wamp.wamp_transport_url,
+            transports=wamp_transport,
             realm=CONF.wamp.wamp_realm
         )
 
