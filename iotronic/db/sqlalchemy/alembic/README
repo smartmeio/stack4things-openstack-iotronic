@@ -10,7 +10,3 @@ Upgrade can be performed by:
 $ iotronic-dbsync - for backward compatibility
 $ iotronic-dbsync upgrade
 # iotronic-dbsync upgrade --revision head
-
-Downgrading db:
-$ iotronic-dbsync downgrade
-$ iotronic-dbsync downgrade --revision base

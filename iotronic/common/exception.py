@@ -625,3 +625,7 @@ class NoPortsManaged(NotFound):
 
 class NetworkError(IotronicException):
     message = _("Network operation failure.")
+
+
+class DatabaseVersionTooOld(IotronicException):
+    _msg_fmt = _("Database version is too old")
