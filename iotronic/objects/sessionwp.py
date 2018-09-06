@@ -53,7 +53,8 @@ class SessionWP(base.IotronicObject):
         if strutils.is_int_like(session_or_board_uuid):
             return cls.get_by_id(context, session_or_board_uuid)
         elif uuidutils.is_uuid_like(session_or_board_uuid):
-            return cls.get_by_uuid(context, session_or_board_uuid)
+            return cls.get_session_by_board_uuid(context,
+                                                 session_or_board_uuid)
         else:
             raise exception.InvalidIdentity(identity=session_or_board_uuid)
 
@@ -76,7 +77,6 @@ class SessionWP(base.IotronicObject):
         :param context: Security context
         :returns: a :class:`SessionWP` object.
         """
-
         db_session = cls.dbapi.get_session_by_board_uuid(board_uuid, valid)
         session = SessionWP._from_db_object(cls(context), db_session)
         return session
@@ -161,4 +161,4 @@ class SessionWP(base.IotronicObject):
             if (hasattr(
                     self, base.get_attrname(field))
                     and self[field] != current[field]):
-                        self[field] = current[field]
+                self[field] = current[field]

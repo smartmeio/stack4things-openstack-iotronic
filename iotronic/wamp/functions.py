@@ -75,19 +75,17 @@ def update_sessions(session_list):
 
 def board_on_leave(session_id):
     LOG.debug('A board with %s disconnectd', session_id)
-
     try:
         old_session = objects.SessionWP.get(ctxt, session_id)
         old_session.valid = False
         old_session.save()
-        LOG.debug('Session %s deleted', session_id)
+        board = objects.Board.get_by_uuid(ctxt, old_session.board_uuid)
+        board.status = states.OFFLINE
+        board.save()
+        LOG.debug('Session updated. Board %s is now  %s', board.uuid,
+                  states.OFFLINE)
     except Exception:
         LOG.debug('session %s not found', session_id)
-
-    board = objects.Board.get_by_uuid(ctxt, old_session.board_uuid)
-    board.status = states.OFFLINE
-    board.save()
-    LOG.debug('Board %s is now  %s', board.uuid, states.OFFLINE)
 
 
 def connection(uuid, session):
