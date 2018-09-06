@@ -19,7 +19,6 @@ import sqlalchemy as sa
 
 
 def upgrade():
-
     op.create_table('boards',
                     sa.Column('created_at', sa.DateTime(), nullable=True),
                     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -161,17 +160,16 @@ def upgrade():
                     sa.Column('updated_at', sa.DateTime(), nullable=True),
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('valid', sa.Boolean(), nullable=True),
-                    sa.Column('session_id', sa.String(length=15),
+                    sa.Column('session_id', sa.String(length=20),
                               nullable=True),
                     sa.Column('board_uuid', sa.String(length=36),
                               nullable=True),
                     sa.Column('board_id', sa.Integer(), nullable=True),
                     sa.ForeignKeyConstraint(['board_id'], ['boards.id'], ),
                     sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('board_uuid',
-                                        name='uniq_board_uuid0board_uuid'),
-                    sa.UniqueConstraint('session_id',
-                                        name='uniq_session_id0session_id')
+                    sa.UniqueConstraint(
+                        'session_id', 'board_uuid',
+                        name='uniq_board_session_id0session_id')
                     )
 
 

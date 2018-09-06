@@ -178,15 +178,12 @@ class SessionWP(Base):
     __tablename__ = 'sessions'
     __table_args__ = (
         schema.UniqueConstraint(
-            'session_id',
-            name='uniq_session_id0session_id'),
-        schema.UniqueConstraint(
-            'board_uuid',
-            name='uniq_board_uuid0board_uuid'),
+            'session_id', 'board_uuid',
+            name='uniq_board_session_id0session_id'),
         table_args())
     id = Column(Integer, primary_key=True)
     valid = Column(Boolean, default=True)
-    session_id = Column(String(15))
+    session_id = Column(String(20))
     board_uuid = Column(String(36))
     board_id = Column(Integer, ForeignKey('boards.id'))
 
@@ -254,17 +251,17 @@ class Port(Base):
     """Represents a port on board."""
 
     __tablename__ = 'ports_on_boards'
-#    __table_args__ = (
-#        schema.UniqueConstraint('port_uuid', name='uniq_ports0uuid'),
-#        table_args()
-#    )
+    #    __table_args__ = (
+    #        schema.UniqueConstraint('port_uuid', name='uniq_ports0uuid'),
+    #        table_args()
+    #    )
     id = Column(Integer, primary_key=True)
     board_uuid = Column(String(40), ForeignKey('boards.uuid'))
     uuid = Column(String(40))
     VIF_name = Column(String(30))
-#    project = Column(String(36))
+    #    project = Column(String(36))
     MAC_add = Column(String(32))
     ip = Column(String(36))
-#    status = Column(String(36))
+    #    status = Column(String(36))
     network = Column(String(36))
 #    security_groups = Column(String(40))
