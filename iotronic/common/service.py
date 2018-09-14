@@ -24,6 +24,7 @@ import oslo_messaging as messaging
 from oslo_utils import importutils
 
 from iotronic.common import config
+from iotronic.common.i18n import _
 from iotronic.common.i18n import _LE
 from iotronic.common.i18n import _LI
 from iotronic.common import rpc
@@ -42,6 +43,15 @@ service_opts = [
                'However, the board name must be valid within '
                'an AMQP key, and if using ZeroMQ, a valid '
                'hostname, FQDN, or IP address.'),
+    cfg.StrOpt('notification_level',
+               choices=[('debug', _('"debug" level')),
+                        ('info', _('"info" level')),
+                        ('warning', _('"warning" level')),
+                        ('error', _('"error" level')),
+                        ('critical', _('"critical" level'))],
+               help=_('Specifies the minimum level for which to send '
+                      'notifications. If not set, no notifications will '
+                      'be sent. The default is for this option to be unset.')),
 ]
 
 cfg.CONF.register_opts(service_opts)
