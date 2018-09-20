@@ -156,13 +156,13 @@ def get_rpc_port(port_ident):
     :raises: InvalidUuidOrName if the name or uuid provided is not valid.
     :raises: portNotFound if the port is not found.
     """
-#     Check to see if the port_ident is a valid UUID.  If it is, treat it
-#     as a UUID.
+    #     Check to see if the port_ident is a valid UUID.  If it is, treat it
+    #     as a UUID.
     if uuidutils.is_uuid_like(port_ident):
         return objects.Port.get_by_uuid(pecan.request.context,
                                         port_ident)
 
-#     We can refer to ports by their name, if the client supports it
+    #     We can refer to ports by their name, if the client supports it
     else:
         return objects.Port.get_by_name(pecan.request.context,
                                         port_ident)
@@ -170,6 +170,33 @@ def get_rpc_port(port_ident):
     raise exception.InvalidUuidOrName(uuid=port_ident)
 
     raise exception.PortNottFound(uuid=port_ident)
+
+
+def get_rpc_fleet(fleet_ident):
+    """Get the RPC fleet from the fleet uuid or logical name.
+
+    :param fleet_ident: the UUID or logical name of a fleet.
+
+    :returns: The RPC Fleet.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: FleetNotFound if the fleet is not found.
+    """
+    # Check to see if the fleet_ident is a valid UUID.  If it is, treat it
+    # as a UUID.
+    if uuidutils.is_uuid_like(fleet_ident):
+        return objects.Fleet.get_by_uuid(pecan.request.context,
+                                         fleet_ident)
+
+    # We can refer to fleets by their name, if the client supports it
+    # if allow_fleet_logical_names():
+    #    if utils.is_hostname_safe(fleet_ident):
+    else:
+        return objects.Fleet.get_by_name(pecan.request.context,
+                                         fleet_ident)
+
+    raise exception.InvalidUuidOrName(name=fleet_ident)
+
+    raise exception.FleetNotFound(fleet=fleet_ident)
 
 
 def is_valid_board_name(name):

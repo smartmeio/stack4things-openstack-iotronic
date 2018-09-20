@@ -264,4 +264,20 @@ class Port(Base):
     ip = Column(String(36))
     #    status = Column(String(36))
     network = Column(String(36))
+
+
 #    security_groups = Column(String(40))
+
+class Fleet(Base):
+    """Represents a fleet."""
+
+    __tablename__ = 'fleets'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_fleets0uuid'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    name = Column(String(36))
+    project = Column(String(36))
+    description = Column(String(300))
+    extra = Column(JSONEncodedDict)

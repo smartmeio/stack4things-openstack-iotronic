@@ -575,3 +575,54 @@ class Connection(object):
 
         :param port_uuid: The uuid of a port.
         """
+
+    @abc.abstractmethod
+    def get_fleet_by_id(self, fleet_id):
+        """Return a fleet.
+
+        :param fleet_id: The id of a fleet.
+        :returns: A fleet.
+        """
+
+    @abc.abstractmethod
+    def get_fleet_by_uuid(self, fleet_uuid):
+        """Return a fleet.
+
+        :param fleet_uuid: The uuid of a fleet.
+        :returns: A fleet.
+        """
+
+    @abc.abstractmethod
+    def get_fleet_by_name(self, fleet_name):
+        """Return a fleet.
+
+        :param fleet_name: The logical name of a fleet.
+        :returns: A fleet.
+        """
+
+    @abc.abstractmethod
+    def create_fleet(self, values):
+        """Create a new fleet.
+
+        :param values: A dict containing several items used to identify
+                       and track the fleet
+        :returns: A fleet.
+        """
+
+    @abc.abstractmethod
+    def destroy_fleet(self, fleet_id):
+        """Destroy a fleet and all associated interfaces.
+
+        :param fleet_id: The id or uuid of a fleet.
+        """
+
+    @abc.abstractmethod
+    def update_fleet(self, fleet_id, values):
+        """Update properties of a fleet.
+
+        :param fleet_id: The id or uuid of a fleet.
+        :param values: Dict of values to update.
+        :returns: A fleet.
+        :raises: FleetAssociated
+        :raises: FleetNotFound
+        """
