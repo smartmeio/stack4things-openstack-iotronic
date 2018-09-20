@@ -29,9 +29,9 @@ According to the `Openstack Documentation <https://docs.openstack.org/>`_ instal
 - Message queue
 - Memcached
 - Keystone
-   
+
 Creation of the database
-----------------------
+-------------------------
 On the dbms create the iotronic db and configure the access for the user iotronic::
 
     MariaDB [(none)]> CREATE DATABASE iotronic;
@@ -49,13 +49,13 @@ Add the user and the enpoints on Keystone::
     openstack role add manager_iot_project
     openstack role add user_iot
 
-    openstack endpoint create --region RegionOne iot public http://IP_IOTRONIC:1288
-    openstack endpoint create --region RegionOne iot internal http://IP_IOTRONIC:1288
-    openstack endpoint create --region RegionOne iot admin http://1IP_IOTRONIC:1288
+    openstack endpoint create --region RegionOne iot public http://IP_IOTRONIC:8812
+    openstack endpoint create --region RegionOne iot internal http://IP_IOTRONIC:8812
+    openstack endpoint create --region RegionOne iot admin http://1IP_IOTRONIC:8812
 
 
 Configuring Iotronic Host 
-----------------------
+--------------------------
 
 Crossbar
 ^^^^^^^^^^^^^^^^^^^^^
@@ -68,74 +68,69 @@ Get the source::
 
     git clone https://github.com/openstack/iotronic.git
 
-install the python-mysqldb::
-
-    sudo apt-get install python-mysqldb 
+add the user iotronic::
+    
+    useradd -m -d /var/lib/iotronic iotronic
 
 and Iotronic::
 
     cd iotronic
-    sudo pip install -r requirements.txt
-    sudo pip install twisted
-    sudo pip install paramiko
-    sudo python setup.py install
+    pip3 install -r requirements.txt 
+    python3 setup.py install
 
 create a log dir::
 
     mkdir -p /var/log/iotronic
+    chown -R iotronic:iotronic /var/log/iotronic/
 
-populate the database::
-
-    cd iotronic/utils
-    ./loaddb MYSQL_IP_ON_CONTROLLER
-
-API Service Configuration
-^^^^^^^^^^^^^^^^^^^^^
-Install apache and the other components::
-
-sudo apt-get install apache2 python-setuptools libapache2-mod-wsgi libssl-dev
-
-create ``/etc/apache2/conf-enabled/iotronic.conf`` and copy the following content::
-
-    Listen 1288
-    <VirtualHost *:1288>
-        WSGIDaemonProcess iotronic 
-        #user=root group=root threads=10 display-name=%{GROUP}
-        WSGIScriptAlias / /var/www/cgi-bin/iotronic/app.wsgi
-
-        #SetEnv APACHE_RUN_USER stack
-        #SetEnv APACHE_RUN_GROUP stack
-        WSGIProcessGroup iotronic
-
-        ErrorLog /var/log/iotronic/iotronic-api_error.log
-        LogLevel debug
-        CustomLog /var/log/iotronic/iotronic-api_access.log combined
-
-        <Directory /etc/iotronic>
-            WSGIProcessGroup iotronic
-            WSGIApplicationGroup %{GLOBAL}
-            AllowOverride All
-            Require all granted
-        </Directory>
-    </VirtualHost>
-
-edit ``/etc/iotronic/iotronic.conf`` with the correct configuration.
+edit ``/etc/iotronic/iotronic.conf`` with the correct configuration::
+    
+    nano /etc/iotronic/iotronic.conf 
 
 There is just one wamp-agent and it must be set as the registration agent::
  
   register_agent = True
 
+populate the database::
+
+    iotronic-dbsync
+
+
+API Service Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Install apache and the other components::
+
+    sudo apt-get install apache2 python-setuptools libapache2-mod-wsgi-py3
+
+create log directory::
+
+    touch /var/log/iotronic/iotronic-api_error.log
+    touch /var/log/iotronic/iotronic-api_access.log
+    chown -R iotronic:iotronic /var/log/iotronic/
+
+copy the config apache2 file::
+
+    cp etc/apache2/iotronic.conf /etc/apache2/sites-available/iotronic.conf
+
+enable the configuration::
+
+    a2ensite /etc/apache2/sites-available/iotronic.conf
+
 restart apache::
   
   systemctl restart apache2
 
-Start the service (better use screen)::
 
-  screen -S conductor
-  iotronic-conductor
+Starting
+^^^^^^^^^^^^^^^^^^^^^
+Start the service::
 
-  screen -S agent
-  iotronic-wamp-agent
+  systemctl enable iotronic-wamp-agent
+  systemctl start iotronic-wamp-agent
+
+  systemctl enable iotronic-conductor
+  systemctl start iotronic-conductor
+
 
 Board Side 
 ----------------------
