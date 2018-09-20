@@ -629,3 +629,15 @@ class NetworkError(IotronicException):
 
 class DatabaseVersionTooOld(IotronicException):
     _msg_fmt = _("Database version is too old")
+
+
+class FleetNotFound(NotFound):
+    message = _("Fleet %(Fleet)s could not be found.")
+
+
+class FleetAlreadyExists(Conflict):
+    message = _("A Fleet with UUID %(uuid)s already exists.")
+
+
+class FleetAlreadyExposed(Conflict):
+    message = _("A Fleet with UUID %(uuid)s already exposed.")

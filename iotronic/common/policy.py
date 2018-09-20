@@ -104,7 +104,6 @@ plugin_policies = [
 
 ]
 
-
 injection_plugin_policies = [
     policy.RuleDefault('iot:plugin_on_board:get',
                        'rule:admin_or_owner',
@@ -166,6 +165,22 @@ exposed_service_policies = [
 
 ]
 
+fleet_policies = [
+    policy.RuleDefault('iot:fleet:get',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Fleet records'),
+    policy.RuleDefault('iot:fleet:create',
+                       'rule:is_iot_member',
+                       description='Create Fleet records'),
+    policy.RuleDefault('iot:fleet:get_one', 'rule:admin_or_owner',
+                       description='Retrieve a Fleet record'),
+    policy.RuleDefault('iot:fleet:delete', 'rule:admin_or_owner',
+                       description='Delete Fleet records'),
+    policy.RuleDefault('iot:fleet:update', 'rule:admin_or_owner',
+                       description='Update Fleet records'),
+
+]
+
 
 def list_policies():
     policies = (default_policies
@@ -175,6 +190,7 @@ def list_policies():
                 + service_policies
                 + exposed_service_policies
                 + port_on_board_policies
+                + fleet_policies
                 )
     return policies
 

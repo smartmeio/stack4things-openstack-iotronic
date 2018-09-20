@@ -161,6 +161,14 @@ class Connection(api.Connection):
             query = query.filter(models.Plugin.owner == filters['owner'])
         return query
 
+    def _add_fleets_filters(self, query, filters):
+        if filters is None:
+            filters = []
+
+        if 'project' in filters:
+            query = query.filter(models.Fleet.project == filters['project'])
+        return query
+
     def _add_wampagents_filters(self, query, filters):
         if filters is None:
             filters = []
@@ -927,3 +935,92 @@ class Connection(api.Connection):
             count = query.delete()
             if count == 0:
                 raise exception.PortNotFound(uuid=uuid)
+
+# FLEET api
+
+    def get_fleet_by_id(self, fleet_id):
+        query = model_query(models.Fleet).filter_by(id=fleet_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.FleetNotFound(fleet=fleet_id)
+
+    def get_fleet_by_uuid(self, fleet_uuid):
+        query = model_query(models.Fleet).filter_by(uuid=fleet_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.FleetNotFound(fleet=fleet_uuid)
+
+    def get_fleet_by_name(self, fleet_name):
+        query = model_query(models.Fleet).filter_by(name=fleet_name)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.FleetNotFound(fleet=fleet_name)
+
+    def destroy_fleet(self, fleet_id):
+
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Fleet, session=session)
+            query = add_identity_filter(query, fleet_id)
+            try:
+                fleet_ref = query.one()
+            except NoResultFound:
+                raise exception.FleetNotFound(fleet=fleet_id)
+
+            # Get fleet ID, if an UUID was supplied. The ID is
+            # required for deleting all ports, attached to the fleet.
+            if uuidutils.is_uuid_like(fleet_id):
+                fleet_id = fleet_ref['id']
+
+            query.delete()
+
+    def update_fleet(self, fleet_id, values):
+        # NOTE(dtantsur): this can lead to very strange errors
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Fleet.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        try:
+            return self._do_update_fleet(fleet_id, values)
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'uuid' in e.columns:
+                raise exception.FleetAlreadyExists(uuid=values['uuid'])
+            else:
+                raise e
+
+    def create_fleet(self, values):
+        # ensure defaults are present for new fleets
+        if 'uuid' not in values:
+            values['uuid'] = uuidutils.generate_uuid()
+        fleet = models.Fleet()
+        fleet.update(values)
+        try:
+            fleet.save()
+        except db_exc.DBDuplicateEntry:
+            raise exception.FleetAlreadyExists(uuid=values['uuid'])
+        return fleet
+
+    def get_fleet_list(self, filters=None, limit=None, marker=None,
+                       sort_key=None, sort_dir=None):
+        query = model_query(models.Fleet)
+        query = self._add_fleets_filters(query, filters)
+        return _paginate_query(models.Fleet, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def _do_update_fleet(self, fleet_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Fleet, session=session)
+            query = add_identity_filter(query, fleet_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.FleetNotFound(fleet=fleet_id)
+
+            ref.update(values)
+        return ref

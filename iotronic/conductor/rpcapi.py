@@ -309,3 +309,45 @@ class ConductorAPI(object):
         return cctxt.call(context, 'remove_VIF_from_board',
                           board_uuid=board_uuid,
                           port_uuid=port_uuid)
+
+    def create_fleet(self, context, fleet_obj, topic=None):
+        """Add a fleet on the cloud
+
+        :param context: request context.
+        :param fleet_obj: a changed (but not saved) fleet object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: created fleet object
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'create_fleet',
+                          fleet_obj=fleet_obj)
+
+    def destroy_fleet(self, context, fleet_id, topic=None):
+        """Delete a fleet.
+
+        :param context: request context.
+        :param fleet_id: fleet id or uuid.
+        :raises: FleetLocked if fleet is locked by another conductor.
+        :raises: FleetAssociated if the fleet contains an instance
+            associated with it.
+        :raises: InvalidState if the fleet is in the wrong provision
+            state to perform deletion.
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'destroy_fleet', fleet_id=fleet_id)
+
+    def update_fleet(self, context, fleet_obj, topic=None):
+        """Synchronously, have a conductor update the fleet's information.
+
+        Update the fleet's information in the database and
+        return a fleet object.
+
+        :param context: request context.
+        :param fleet_obj: a changed (but not saved) fleet object.
+        :param topic: RPC topic. Defaults to self.topic.
+        :returns: updated fleet object, including all fields.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'update_fleet', fleet_obj=fleet_obj)

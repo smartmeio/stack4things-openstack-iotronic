@@ -26,7 +26,6 @@ from oslo_log import log as logging
 import oslo_messaging
 import random
 
-
 LOG = logging.getLogger(__name__)
 
 serializer = objects_base.IotronicObjectSerializer()
@@ -489,3 +488,23 @@ class ConductorEndpoint(object):
 
         except Exception as e:
             LOG.error(str(e))
+
+    def create_fleet(self, ctx, fleet_obj):
+        new_fleet = serializer.deserialize_entity(ctx, fleet_obj)
+        LOG.debug('Creating fleet %s',
+                  new_fleet.name)
+        new_fleet.create()
+        return serializer.serialize_entity(ctx, new_fleet)
+
+    def destroy_fleet(self, ctx, fleet_id):
+        LOG.info('Destroying fleet with id %s',
+                 fleet_id)
+        fleet = objects.Fleet.get_by_uuid(ctx, fleet_id)
+        fleet.destroy()
+        return
+
+    def update_fleet(self, ctx, fleet_obj):
+        fleet = serializer.deserialize_entity(ctx, fleet_obj)
+        LOG.debug('Updating fleet %s', fleet.name)
+        fleet.save()
+        return serializer.serialize_entity(ctx, fleet)

@@ -25,6 +25,7 @@ from wsme import types as wtypes
 
 from iotronic.api.controllers import base
 from iotronic.api.controllers import link
+from iotronic.api.controllers.v1 import fleet
 from iotronic.api.controllers.v1 import plugin
 from iotronic.api.controllers.v1 import port
 from iotronic.api.controllers.v1 import service
@@ -70,6 +71,9 @@ class V1(base.APIBase):
     ports = [link.Link]
     """Links to the boards resource"""
 
+    fleet = [link.Link]
+    """Links to the boards resource"""
+
     @staticmethod
     def convert():
         v1 = V1()
@@ -113,6 +117,14 @@ class V1(base.APIBase):
                                         pecan.request.public_url, 'ports', '',
                                         bookmark=True)]
 
+        v1.fleets = [link.Link.make_link('self', pecan.request.public_url,
+                                         'fleets', ''),
+                     link.Link.make_link('bookmark',
+                                         pecan.request.public_url,
+                                         'fleets', '',
+                                         bookmark=True)
+                     ]
+
         return v1
 
 
@@ -123,6 +135,7 @@ class Controller(rest.RestController):
     plugins = plugin.PluginsController()
     services = service.ServicesController()
     ports = port.PortsController()
+    fleets = fleet.FleetsController()
 
     @expose.expose(V1)
     def get(self):
