@@ -154,6 +154,7 @@ class Board(Base):
     agent = Column(String(255), nullable=True)
     owner = Column(String(36))
     project = Column(String(36))
+    fleet = Column(String(36), ForeignKey('fleets.uuid'), nullable=True)
     mobile = Column(Boolean, default=False)
     config = Column(JSONEncodedDict)
     extra = Column(JSONEncodedDict)

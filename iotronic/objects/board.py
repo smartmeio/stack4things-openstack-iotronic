@@ -39,6 +39,7 @@ class Board(base.IotronicObject):
         'agent': obj_utils.str_or_none,
         'owner': obj_utils.str_or_none,
         'project': obj_utils.str_or_none,
+        'fleet': obj_utils.str_or_none,
         'mobile': bool,
         'config': obj_utils.dict_or_none,
         'extra': obj_utils.dict_or_none,

@@ -13,6 +13,7 @@
 
 from iotronic.api.controllers import base
 from iotronic.api.controllers import link
+from iotronic.api.controllers.v1.board import BoardCollection
 from iotronic.api.controllers.v1 import collection
 from iotronic.api.controllers.v1 import types
 from iotronic.api.controllers.v1 import utils as api_utils
@@ -28,6 +29,9 @@ from wsme import types as wtypes
 
 _DEFAULT_RETURN_FIELDS = (
     'name', 'uuid', 'project', 'description', 'extra')
+
+_DEFAULT_BOARDS_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session',
+                                 'type', 'fleet')
 
 
 class Fleet(base.APIBase):
@@ -94,48 +98,16 @@ class FleetCollection(collection.Collection):
         return collection
 
 
-class PublicFleetsController(rest.RestController):
-    """REST controller for Public Fleets."""
+class FleetBoardsController(rest.RestController):
+    def __init__(self, fleet_ident):
+        self.fleet_ident = fleet_ident
 
-    invalid_sort_key_list = ['extra']
-
-    def _get_fleets_collection(self, marker, limit,
-                               sort_key, sort_dir,
-                               fields=None):
-
-        limit = api_utils.validate_limit(limit)
-        sort_dir = api_utils.validate_sort_dir(sort_dir)
-
-        marker_obj = None
-        if marker:
-            marker_obj = objects.Fleet.get_by_uuid(pecan.request.context,
-                                                   marker)
-
-        if sort_key in self.invalid_sort_key_list:
-            raise exception.InvalidParameterValue(
-                ("The sort_key value %(key)s is an invalid field for "
-                 "sorting") % {'key': sort_key})
-
-        filters = {}
-        filters['public'] = True
-
-        fleets = objects.Fleet.list(pecan.request.context, limit,
-                                    marker_obj,
-                                    sort_key=sort_key, sort_dir=sort_dir,
-                                    filters=filters)
-
-        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
-
-        return FleetCollection.convert_with_links(fleets, limit,
-                                                  fields=fields,
-                                                  **parameters)
-
-    @expose.expose(FleetCollection, types.uuid, int, wtypes.text,
-                   wtypes.text, types.listtype, types.boolean, types.boolean)
+    @expose.expose(BoardCollection, types.uuid, int, wtypes.text,
+                   wtypes.text, types.listtype)
     def get_all(self, marker=None,
                 limit=None, sort_key='id', sort_dir='asc',
                 fields=None):
-        """Retrieve a list of fleets.
+        """Retrieve a list of boards.
 
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
@@ -148,25 +120,50 @@ class PublicFleetsController(rest.RestController):
                        of the resource to be returned.
         """
         cdict = pecan.request.context.to_policy_values()
-        policy.authorize('iot:fleet:get', cdict, cdict)
+        policy.authorize('iot:board:get', cdict, cdict)
 
         if fields is None:
-            fields = _DEFAULT_RETURN_FIELDS
-        return self._get_fleets_collection(marker,
-                                           limit, sort_key, sort_dir,
-                                           fields=fields)
+            fields = _DEFAULT_BOARDS_RETURN_FIELDS
+
+        filters = {}
+        filters['fleet'] = self.fleet_ident
+
+        boards = objects.Board.list(pecan.request.context, limit, marker,
+                                    sort_key=sort_key, sort_dir=sort_dir,
+                                    filters=filters)
+
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+
+        return BoardCollection.convert_with_links(boards, limit,
+                                                  fields=fields,
+                                                  **parameters)
 
 
 class FleetsController(rest.RestController):
     """REST controller for Fleets."""
 
-    public = PublicFleetsController()
+    _subcontroller_map = {
+        'boards': FleetBoardsController,
+    }
 
     invalid_sort_key_list = ['extra', ]
 
     _custom_actions = {
         'detail': ['GET'],
     }
+
+    @pecan.expose()
+    def _lookup(self, ident, *remainder):
+        try:
+            ident = types.uuid_or_name.validate(ident)
+        except exception.InvalidUuidOrName as e:
+            pecan.abort('400', e.args[0])
+        if not remainder:
+            return
+
+        subcontroller = self._subcontroller_map.get(remainder[0])
+        if subcontroller:
+            return subcontroller(fleet_ident=ident), remainder[1:]
 
     def _get_fleets_collection(self, marker, limit,
                                sort_key, sort_dir,

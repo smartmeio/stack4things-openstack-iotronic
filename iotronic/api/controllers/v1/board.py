@@ -30,7 +30,8 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 
-_DEFAULT_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session', 'type')
+_DEFAULT_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session', 'type',
+                          'fleet')
 
 
 class Board(base.APIBase):
@@ -45,6 +46,7 @@ class Board(base.APIBase):
     owner = types.uuid
     session = wsme.wsattr(wtypes.text)
     project = types.uuid
+    fleet = types.uuid
     mobile = types.boolean
     links = wsme.wsattr([link.Link], readonly=True)
     location = wsme.wsattr([loc.Location])
