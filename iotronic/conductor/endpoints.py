@@ -13,7 +13,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import _pickle as cpickle
+
+try:
+    # allow iotronic api to run also with python3
+    import _pickle as cpickle
+except Exception:
+    # allow iotronic api to run also with python2.7
+    import pickle as cpickle
+
 from iotronic.common import exception
 from iotronic.common import neutron
 from iotronic.common import states
