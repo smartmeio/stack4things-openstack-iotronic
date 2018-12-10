@@ -23,20 +23,17 @@ LOG = logging.getLogger(__name__)
 nginx_opts = [
     cfg.StrOpt('nginx_path',
                default='/etc/nginx/conf.d/iotronic',
-               help=('Default Nginx Path')),
-    cfg.StrOpt('dns_zone',
-               default='openstack.iotronic',
-               help=('Default zone')),
+               help=('Default Nginx Path'))
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(nginx_opts, 'nginx')
 
 
-def save_map(board, dns):
+def save_map(board, zone):
     fp = CONF.nginx.nginx_path + "/maps/map_" + board
     with open(fp, "w") as text_file:
-        text_file.write("~" + board + "." + dns + " " + board + ";")
+        text_file.write("~" + board + "." + zone + " " + board + ";")
 
 
 def save_upstream(board, https_port):
@@ -50,7 +47,7 @@ def save_upstream(board, https_port):
         text_file.write("%s" % string)
 
 
-def save_server(board, http_port, dns):
+def save_server(board, http_port, zone):
     fp = CONF.nginx.nginx_path + "/servers/" + board
     string = '''server {{
     listen              80;
@@ -60,7 +57,7 @@ def save_server(board, http_port, dns):
         proxy_pass http://localhost:{1};
     }}
     }}
-    '''.format(board, http_port, dns)
+    '''.format(board, http_port, zone)
 
     with open(fp, "w") as text_file:
         text_file.write("%s" % string)
@@ -77,19 +74,18 @@ def remove(board):
 class ProxyManager(Proxy):
 
     def __init__(self):
-        self.dns = CONF.nginx.dns_zone
         super(ProxyManager, self).__init__("nginx")
 
     def reload_proxy(self, ctx):
         call(["nginx", "-s", "reload"])
 
-    def enable_webservice(self, ctx, board, https_port, http_port):
+    def enable_webservice(self, ctx, board, https_port, http_port, zone):
         LOG.debug(
             'Enabling WebService with ports  %s for http and %s for https '
             'on board %s', http_port, https_port, board)
-        save_map(board, self.dns)
+        save_map(board, zone)
         save_upstream(board, https_port)
-        save_server(board, http_port, self.dns)
+        save_server(board, http_port, zone)
 
     def disable_webservice(self, ctx, board):
         LOG.debug('Disabling WebService on board %s',

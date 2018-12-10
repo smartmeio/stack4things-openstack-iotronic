@@ -713,7 +713,7 @@ class ConductorEndpoint(object):
 
         cctx = self.wamp_agent_client.prepare(server=board.agent)
         cctx.call(ctx, 'enable_webservice', board=dns,
-                  https_port=https_port, http_port=http_port)
+                  https_port=https_port, http_port=http_port, zone=zone)
         cctx.call(ctx, 'reload_proxy')
 
         LOG.debug('Configure Web Proxy on Board %s with dns %s (email: %s) ',
