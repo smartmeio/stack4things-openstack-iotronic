@@ -32,6 +32,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import oslo_messaging
 import random
+import socket
 
 LOG = logging.getLogger(__name__)
 
@@ -71,7 +72,8 @@ def manage_result(res, wamp_rpc_call, board_uuid):
 def create_record_dns_webservice(ctx, board, webs_name, board_dns, zone):
     agent = objects.WampAgent.get_by_hostname(ctx, board.agent)
     wsurl = agent.wsurl
-    ip = wsurl.split("//")[1].split(":")[0]
+    w_host = wsurl.split("//")[1].split(":")[0]
+    ip = socket.gethostbyname(w_host)
 
     LOG.debug('Create dns record  %s for board %s',
               webs_name + "." + board_dns + "." + zone,
@@ -86,7 +88,8 @@ def create_record_dns_webservice(ctx, board, webs_name, board_dns, zone):
 def create_record_dns(ctx, board, board_dns, zone):
     agent = objects.WampAgent.get_by_hostname(ctx, board.agent)
     wsurl = agent.wsurl
-    ip = wsurl.split("//")[1].split(":")[0]
+    w_host = wsurl.split("//")[1].split(":")[0]
+    ip = socket.gethostbyname(w_host)
 
     LOG.debug('Create dns record  %s for board %s',
               board_dns + "." + zone,
