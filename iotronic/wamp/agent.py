@@ -188,6 +188,7 @@ class WampManager(object):
             wamp_transport = [
                 {
                     "url": CONF.wamp.wamp_transport_url,
+                    "serializers": ["json"],
                     "endpoint": {
                         "type": "tcp",
                         "host": whost,
