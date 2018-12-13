@@ -243,7 +243,7 @@ class WampManager(object):
 
             session_l = await session.call(u'wamp.session.list')
             session_l.remove(details.session)
-            fun.update_sessions(session_l)
+            fun.update_sessions(session_l, AGENT_HOST)
 
         @comp.on_leave
         async def onLeave(session, details):

@@ -508,8 +508,13 @@ class Connection(api.Connection):
         except NoResultFound:
             return None
 
-    def get_valid_wpsessions_list(self):
-        query = model_query(models.SessionWP).filter_by(valid=1)
+    def get_valid_wpsessions_list(self, agent):
+        query = model_query(models.SessionWP)
+        query = query.filter_by(valid=1)
+        query = query.join(models.Board,
+                           models.SessionWP.board_id == models.Board.id)
+        query = query.filter_by(agent=agent)
+
         return query.all()
 
     # WAMPAGENT api

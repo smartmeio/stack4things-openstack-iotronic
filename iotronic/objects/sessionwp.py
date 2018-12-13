@@ -82,14 +82,14 @@ class SessionWP(base.IotronicObject):
         return session
 
     @base.remotable_classmethod
-    def valid_list(cls, context):
+    def valid_list(cls, context, agent):
         """Return a list of SessionWP objects.
 
         :returns: a list of valid session_id
 
         """
 
-        db_list = cls.dbapi.get_valid_wpsessions_list()
+        db_list = cls.dbapi.get_valid_wpsessions_list(agent)
         return [SessionWP._from_db_object(cls(context), x) for x in db_list]
 
     @base.remotable

@@ -268,7 +268,7 @@ class Connection(object):
         """
 
     @abc.abstractmethod
-    def get_valid_wpsessions_list(self):
+    def get_valid_wpsessions_list(self, agent):
         """Return a list of wpsession."""
 
     @abc.abstractmethod
