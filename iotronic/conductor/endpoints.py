@@ -50,7 +50,7 @@ def get_best_agent(ctx):
 
 
 def random_public_port():
-    return random.randint(50000, 60000)
+    return random.randint(50001, 59999)
 
 
 def manage_result(res, wamp_rpc_call, board_uuid):
