@@ -71,6 +71,39 @@ def remove(board):
           ])
 
 
+def string_redirect(board, zone, dns=None):
+    if not dns:
+        host = "%s.%s" % (board, zone)
+    else:
+        host = "%s.%s.%s" % (dns, board, zone)
+    string = "if ($host = %s) { return 301 https://$host$request_uri; }\n" % (
+        host)
+    return string
+
+
+def insert_entry(line, lines):
+    try:
+        lines.index(line)
+    except Exception:
+        lines.insert(4, line)
+    return lines
+
+
+def remove_entry(line, lines):
+    try:
+        lines.remove(line)
+    except Exception:
+        pass
+    return lines
+
+
+def save_conf(f_conf, lines):
+    f = open(f_conf, "w")
+    lines = "".join(lines)
+    f.write(lines)
+    f.close()
+
+
 class ProxyManager(Proxy):
 
     def __init__(self):
@@ -91,3 +124,25 @@ class ProxyManager(Proxy):
         LOG.debug('Disabling WebService on board %s',
                   board)
         remove(board)
+
+    def add_redirect(self, ctx, board_dns, zone, dns=None):
+        line = string_redirect(board_dns, zone, dns)
+        path = CONF.nginx.nginx_path + "/servers/" + board_dns
+        LOG.debug('Adding redirect %s on %s', line, path)
+
+        f = open(str(CONF.nginx.nginx_path + "/servers/" + board_dns), "r")
+        lines = f.readlines()
+        f.close()
+        lines = insert_entry(line, lines)
+        save_conf(path, lines)
+
+    def remove_redirect(self, ctx, board_dns, zone, dns=None):
+        path = CONF.nginx.nginx_path + "/servers/" + board_dns
+        line = string_redirect(board_dns, zone, dns)
+        LOG.debug('Removing redirect  %s on %s', line, path)
+
+        f = open(path, "r")
+        lines = f.readlines()
+        f.close()
+        lines = remove_entry(line, lines)
+        save_conf(path, lines)

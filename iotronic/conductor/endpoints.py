@@ -596,7 +596,13 @@ class ConductorEndpoint(object):
         except exception:
             return exception
 
+        cctx = self.wamp_agent_client.prepare(server=board.agent)
+        cctx.call(ctx, 'add_redirect', board_dns=en_webservice.dns,
+                  zone=en_webservice.zone, dns=newwbs.name)
+        cctx.call(ctx, 'reload_proxy')
+
         newwbs.create()
+
         return serializer.serialize_entity(ctx, newwbs)
 
     def destroy_webservice(self, ctx, webservice_id):
@@ -631,6 +637,16 @@ class ConductorEndpoint(object):
                                   (dns_domain, list_dns,))
         except exception:
             return exception
+
+        board = objects.Board.get_by_uuid(ctx, wbsrv.board_uuid)
+        if board.agent == None:
+            raise exception.BoardInvalidStatus(uuid=board.uuid,
+                                               status=board.status)
+
+        cctx = self.wamp_agent_client.prepare(server=board.agent)
+        cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
+                  zone=en_webservice.zone, dns=wbsrv.name)
+        cctx.call(ctx, 'reload_proxy')
 
         wbsrv.destroy()
         designate.delete_record(wbsrv.name + "." + en_webservice.dns,
@@ -717,7 +733,6 @@ class ConductorEndpoint(object):
         cctx = self.wamp_agent_client.prepare(server=board.agent)
         cctx.call(ctx, 'enable_webservice', board=dns,
                   https_port=https_port, http_port=http_port, zone=zone)
-        cctx.call(ctx, 'reload_proxy')
 
         LOG.debug('Configure Web Proxy on Board %s with dns %s (email: %s) ',
                   board.uuid, dns, email)
@@ -730,6 +745,9 @@ class ConductorEndpoint(object):
                                   (dns + "." + zone, email,))
         except exception:
             return exception
+
+        cctx.call(ctx, 'add_redirect', board_dns=dns, zone=zone)
+        cctx.call(ctx, 'reload_proxy')
 
         return serializer.serialize_entity(ctx, en_webservice)
 
@@ -784,6 +802,10 @@ class ConductorEndpoint(object):
 
         cctx = self.wamp_agent_client.prepare(server=board.agent)
         cctx.call(ctx, 'disable_webservice', board=webservice.dns)
+
+        # cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
+        #          zone=en_webservice.zone)
+
         cctx.call(ctx, 'reload_proxy')
 
         webservice.destroy()
