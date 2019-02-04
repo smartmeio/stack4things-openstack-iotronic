@@ -152,6 +152,8 @@ class Board(Base):
     owner = Column(String(36))
     project = Column(String(36))
     fleet = Column(String(36), ForeignKey('fleets.uuid'), nullable=True)
+    lr_version = Column(String(20), nullable=True)
+    mac_addr = Column(String(20), nullable=True)
     mobile = Column(Boolean, default=False)
     config = Column(JSONEncodedDict)
     extra = Column(JSONEncodedDict)

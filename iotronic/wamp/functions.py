@@ -122,7 +122,7 @@ def board_on_leave(session_id):
         LOG.debug('session %s not found', session_id)
 
 
-def connection(uuid, session):
+def connection(uuid, session, info=None):
     LOG.debug('Received registration from %s with session %s',
               uuid, session)
     try:
@@ -151,6 +151,16 @@ def connection(uuid, session):
     LOG.debug('new session for %s saved %s', board.uuid,
               session.session_id)
     board.status = states.ONLINE
+
+    if info:
+        LOG.debug('board infos %s', info)
+        if 'lr_version' in info:
+            if board.lr_version != info['lr_version']:
+                board.lr_version = info['lr_version']
+        if 'mac_addr' in info:
+            if board.mac_addr != info['mac_addr']:
+                board.mac_addr = info['mac_addr']
+
     board.save()
     LOG.info('Board %s (%s) is now  %s', board.uuid,
              board.name, states.ONLINE)
