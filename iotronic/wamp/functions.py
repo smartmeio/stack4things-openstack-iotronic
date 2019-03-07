@@ -157,9 +157,10 @@ def connection(uuid, session, info=None):
         if 'lr_version' in info:
             if board.lr_version != info['lr_version']:
                 board.lr_version = info['lr_version']
+        if 'connectivity' in info:
+            board.connectivity = info['connectivity']
         if 'mac_addr' in info:
-            if board.mac_addr != info['mac_addr']:
-                board.mac_addr = info['mac_addr']
+            board.connectivity = {"mac_addr": info['mac_addr']}
 
     board.save()
     LOG.info('Board %s (%s) is now  %s', board.uuid,

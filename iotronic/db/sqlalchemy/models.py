@@ -153,7 +153,7 @@ class Board(Base):
     project = Column(String(36))
     fleet = Column(String(36), ForeignKey('fleets.uuid'), nullable=True)
     lr_version = Column(String(20), nullable=True)
-    mac_addr = Column(String(20), nullable=True)
+    connectivity = Column(JSONEncodedDict)
     mobile = Column(Boolean, default=False)
     config = Column(JSONEncodedDict)
     extra = Column(JSONEncodedDict)

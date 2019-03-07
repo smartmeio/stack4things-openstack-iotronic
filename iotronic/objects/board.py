@@ -41,7 +41,7 @@ class Board(base.IotronicObject):
         'project': obj_utils.str_or_none,
         'fleet': obj_utils.str_or_none,
         'lr_version': obj_utils.str_or_none,
-        'mac_addr': obj_utils.str_or_none,
+        'connectivity': obj_utils.dict_or_none,
         'mobile': bool,
         'config': obj_utils.dict_or_none,
         'extra': obj_utils.dict_or_none,

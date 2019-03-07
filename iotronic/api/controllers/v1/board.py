@@ -34,7 +34,7 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 _DEFAULT_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session', 'type',
-                          'fleet', 'lr_version', 'mac_addr')
+                          'fleet', 'lr_version', 'connectivity')
 _DEFAULT_WEBSERVICE_RETURN_FIELDS = ('name', 'uuid', 'port', 'board_uuid',
                                      'extra')
 
@@ -54,7 +54,7 @@ class Board(base.APIBase):
     fleet = types.uuid
     mobile = types.boolean
     lr_version = wsme.wsattr(wtypes.text)
-    mac_addr = wsme.wsattr(wtypes.text)
+    connectivity = types.jsontype
     links = wsme.wsattr([link.Link], readonly=True)
     location = wsme.wsattr([loc.Location])
     extra = types.jsontype
