@@ -34,7 +34,8 @@ from oslo_log import log as logging
 LOG = logging.getLogger(__name__)
 
 _DEFAULT_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session', 'type',
-                          'fleet', 'lr_version', 'connectivity')
+                          'fleet', 'lr_version', 'connectivity', 'agent',
+                          'wstun_ip')
 _DEFAULT_WEBSERVICE_RETURN_FIELDS = ('name', 'uuid', 'port', 'board_uuid',
                                      'extra')
 
@@ -48,6 +49,8 @@ class Board(base.APIBase):
     status = wsme.wsattr(wtypes.text)
     name = wsme.wsattr(wtypes.text)
     type = wsme.wsattr(wtypes.text)
+    agent = wsme.wsattr(wtypes.text)
+    wstun_ip = wsme.wsattr(wtypes.text)
     owner = types.uuid
     session = wsme.wsattr(wtypes.text)
     project = types.uuid
@@ -74,6 +77,11 @@ class Board(base.APIBase):
         board_uuid = board.uuid
         if fields is not None:
             board.unset_fields_except(fields)
+
+        wagent = objects.WampAgent.get_by_hostname(pecan.request.context,
+                                                   board.agent)
+        wsurl = wagent.wsurl
+        board.wstun_ip = wsurl.split("//")[1].split(":")[0]
 
         # rel_name, url, resource, resource_args,
         #              bookmark=False, type=wtypes.Unset
