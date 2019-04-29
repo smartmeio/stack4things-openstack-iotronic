@@ -241,6 +241,27 @@ class ConductorEndpoint(object):
 
         return res
 
+    def action_board(self, ctx, board_uuid, action, params):
+
+        LOG.info('Calling action %s, into the board %s with params %s',
+                 action, board_uuid, params)
+
+        board = objects.Board.get(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
+        objects.board.is_valid_action(action)
+
+        try:
+            result = self.execute_on_board(ctx, board_uuid, action,
+                                           (params))
+        except exception:
+            return exception
+
+        result = manage_result(result, action, board_uuid)
+        LOG.debug(result)
+        return result
+
     def destroy_plugin(self, ctx, plugin_id):
         LOG.info('Destroying plugin with id %s',
                  plugin_id)

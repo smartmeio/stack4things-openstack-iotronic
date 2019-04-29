@@ -260,6 +260,11 @@ class Network(base.APIBase):
     security_groups = types.jsontype
 
 
+class BoardAction(base.APIBase):
+    action = wsme.wsattr(wtypes.text)
+    parameters = types.jsontype
+
+
 class BoardPluginsController(rest.RestController):
     def __init__(self, board_ident):
         self.board_ident = board_ident
@@ -719,6 +724,7 @@ class BoardsController(rest.RestController):
 
     _custom_actions = {
         'detail': ['GET'],
+        'action': ['POST'],
     }
 
     @pecan.expose()
@@ -937,3 +943,24 @@ class BoardsController(rest.RestController):
         return self._get_boards_collection(status, marker,
                                            limit, sort_key, sort_dir,
                                            project=project, fields=fields)
+
+    @expose.expose(wtypes.text, types.uuid_or_name, body=BoardAction,
+                   status_code=200)
+    def action(self, board_ident, BoardAction):
+        """Action on a board.
+
+        :param board_ident: UUID or logical name of a board.
+        """
+
+        context = pecan.request.context
+        cdict = context.to_policy_values()
+        policy.authorize('iot:board_action:post', cdict, cdict)
+
+        if not BoardAction.parameters:
+            BoardAction.parameters = {}
+
+        rpc_board = api_utils.get_rpc_board(board_ident)
+        return pecan.request.rpcapi.action_board(pecan.request.context,
+                                                 rpc_board.uuid,
+                                                 BoardAction.action,
+                                                 BoardAction.parameters)

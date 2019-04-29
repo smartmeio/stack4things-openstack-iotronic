@@ -142,6 +142,10 @@ class BoardAlreadyExists(Conflict):
     message = _("A board with UUID %(uuid)s already exists.")
 
 
+class InvalidBoardAction(Invalid):
+    message = _("Invalid Action %(action)s for the board.")
+
+
 class BoardInvalidStatus(Conflict):
     message = _(
         "A board with UUID %(uuid)s has a not valid state: %(status)s.")

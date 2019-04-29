@@ -128,6 +128,20 @@ class ConductorAPI(object):
                           wamp_rpc_call=wamp_rpc_call,
                           wamp_rpc_args=wamp_rpc_args)
 
+    def action_board(self, context, board_uuid, action, params, topic=None):
+        """Action on a board
+
+        :param context: request context.
+        :param board_uuid: board id or uuid.
+'       :param action: action.
+ì       :param paramas: parameters of the action
+ì       :param long_running: boolean if a response need to be waited.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'action_board', board_uuid=board_uuid,
+                          action=action, params=params)
+
     def create_plugin(self, context, plugin_obj, topic=None):
         """Add a plugin on the cloud
 

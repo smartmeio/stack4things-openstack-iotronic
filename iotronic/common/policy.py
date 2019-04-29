@@ -85,6 +85,9 @@ board_policies = [
                        'rule:is_admin or rule:is_admin_iot_project '
                        'or rule:is_manager_iot_project',
                        description='Update Board records'),
+    policy.RuleDefault('iot:board_action:post',
+                       'rule:admin_or_owner',
+                       description='Action on Board records'),
 
 ]
 

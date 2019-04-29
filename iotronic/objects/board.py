@@ -22,6 +22,15 @@ from iotronic.db import api as db_api
 from iotronic.objects import base
 from iotronic.objects import utils as obj_utils
 
+ACTIONS = ['DevicePing', 'DeviceReboot', 'DeviceRestartLR',
+           'DeviceNetConfig', 'DeviceEcho', 'DeviceUpgradeLR']
+
+
+def is_valid_action(action):
+    if action not in ACTIONS:
+        raise exception.InvalidBoardAction(action=action)
+    return True
+
 
 class Board(base.IotronicObject):
     # Version 1.0: Initial version
