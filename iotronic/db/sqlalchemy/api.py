@@ -226,6 +226,15 @@ class Connection(api.Connection):
             query = query. \
                 filter(models.Port.board_uuid == filters['board_uuid'])
 
+    def _add_result_filters(self, query, filters):
+        if filters is None:
+            filters = []
+
+        if 'result' in filters:
+            query = query.filter(models.Result.result == filters['result'])
+
+        return query
+
     def _do_update_board(self, board_id, values):
         session = get_session()
         with session.begin():
@@ -1196,3 +1205,87 @@ class Connection(api.Connection):
         query = self._add_enabled_webservices_filters(query, filters)
         return _paginate_query(models.EnabledWebservice, limit, marker,
                                sort_key, sort_dir, query)
+
+    # REQUEST
+
+    def get_request_by_id(self, request_id):
+        query = model_query(models.Request).filter_by(id=request_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.RequestNotFound(request=request_id)
+
+    def get_request_by_uuid(self, request_uuid):
+        query = model_query(models.Request).filter_by(uuid=request_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.RequestNotFound(request=request_uuid)
+
+    def _do_update_request(self, update_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Request, session=session)
+            query = add_identity_filter(query, update_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.RequestNotFound(result=update_id)
+            ref.update(values)
+        return ref
+
+    def create_request(self, values):
+        # ensure defaults are present for new requests
+        if 'uuid' not in values:
+            values['uuid'] = uuidutils.generate_uuid()
+        request = models.Request()
+        request.update(values)
+        request.save()
+        return request
+
+    def update_request(self, request_id, values):
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing Request.")
+            raise exception.InvalidParameterValue(err=msg)
+        return self._do_update_request(request_id, values)
+
+    # RESULT
+
+    def _do_update_result(self, update_id, values):
+        session = get_session()
+        with session.begin():
+            query = model_query(models.Result, session=session)
+            query = add_identity_filter(query, update_id)
+            try:
+                ref = query.with_lockmode('update').one()
+            except NoResultFound:
+                raise exception.ResultNotFound(result=update_id)
+            ref.update(values)
+        return ref
+
+    def create_result(self, values):
+        # ensure defaults are present for new results
+        result = models.Result()
+        result.update(values)
+        result.save()
+        return result
+
+    def get_result(self, board_uuid, request_uuid):
+        query = model_query(models.Result).filter_by(
+            board_uuid=board_uuid).filter_by(request_uuid=request_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.ResultNotFound()
+
+    def update_result(self, result_id, values):
+        return self._do_update_result(result_id, values)
+
+    def get_results(self, request_uuid, filters=None):
+        query = model_query(models.Result).filter_by(
+            request_uuid=request_uuid)
+        query = self._add_result_filters(query, filters)
+        try:
+            return query.all()
+        except NoResultFound:
+            raise exception.ResultNotFound()

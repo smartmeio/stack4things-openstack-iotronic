@@ -21,6 +21,8 @@ from iotronic.objects import injectionplugin
 from iotronic.objects import location
 from iotronic.objects import plugin
 from iotronic.objects import port
+from iotronic.objects import request
+from iotronic.objects import result
 from iotronic.objects import service
 from iotronic.objects import sessionwp
 from iotronic.objects import wampagent
@@ -36,6 +38,8 @@ SessionWP = sessionwp.SessionWP
 WampAgent = wampagent.WampAgent
 Service = service.Service
 Webservice = webservice.Webservice
+Request = request.Request
+Result = result.Result
 Port = port.Port
 Fleet = fleet.Fleet
 EnabledWebservice = enabledwebservice.EnabledWebservice
@@ -53,5 +57,7 @@ __all__ = (
     Port,
     Fleet,
     Webservice,
-    EnabledWebservice
+    EnabledWebservice,
+    Request,
+    Result,
 )

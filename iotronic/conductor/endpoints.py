@@ -41,6 +41,27 @@ serializer = objects_base.IotronicObjectSerializer()
 Port = list()
 
 
+# Method to compare two versions.
+# Return 1 if v2 is smaller,
+# -1 if v1 is smaller,
+# 0 if equal
+def versionCompare(v1, v2):
+    v1_list = v1.split(".")[:3]
+    v2_list = v2.split(".")[:3]
+    i = 0
+    while (i < len(v1_list)):
+
+        # v2 > v1
+        if int(v2_list[i]) > int(v1_list[i]):
+            return -1
+        # v1 > v1
+        if int(v1_list[i]) > int(v2_list[i]):
+            return 1
+        i += 1
+    # v2 == v1
+    return 0
+
+
 def get_best_agent(ctx):
     agents = objects.WampAgent.list(ctx, filters={'online': True})
     LOG.debug('found %d Agent(s).', len(agents))
@@ -233,13 +254,50 @@ class ConductorEndpoint(object):
         if not board.is_online():
             raise exception.BoardNotConnected(board=board.uuid)
 
-        cctx = self.wamp_agent_client.prepare(server=board.agent)
-        res = cctx.call(ctx, 's4t_invoke_wamp',
-                        wamp_rpc_call=full_wamp_call,
-                        data=wamp_rpc_args)
-        res = wm.deserialize(res)
+        req_data = {
+            'destination_uuid': board_uuid,
+            'type': objects.request.BOARD,
+            'status': objects.request.PENDING,
+            'action': wamp_rpc_call
+        }
+        req = objects.Request(ctx, **req_data)
+        req.create()
 
-        return res
+        res_data = {
+            'board_uuid': board_uuid,
+            'request_uuid': req.uuid,
+            'result': objects.result.RUNNING,
+            'message': ""
+        }
+
+        res = objects.Result(ctx, **res_data)
+        res.create()
+
+        cctx = self.wamp_agent_client.prepare(server=board.agent)
+
+        # for previous LR version (to be removed asap)
+        if (versionCompare(board.lr_version, "0.4.9") == -1):
+
+            response = cctx.call(ctx, 's4t_invoke_wamp',
+                                 wamp_rpc_call=full_wamp_call,
+                                 data=wamp_rpc_args)
+        else:
+
+            response = cctx.call(ctx, 's4t_invoke_wamp',
+                                 wamp_rpc_call=full_wamp_call,
+                                 req_uuid=req.uuid,
+                                 data=wamp_rpc_args)
+
+        response = wm.deserialize(response)
+
+        if (response.result != wm.RUNNING):
+            res.result = response.result
+            res.message = response.message
+            res.save()
+            req.status = objects.request.COMPLETED
+            req.save()
+
+        return response
 
     def action_board(self, ctx, board_uuid, action, params):
 
@@ -254,7 +312,7 @@ class ConductorEndpoint(object):
 
         try:
             result = self.execute_on_board(ctx, board_uuid, action,
-                                           (params))
+                                           (params,))
         except exception:
             return exception
 

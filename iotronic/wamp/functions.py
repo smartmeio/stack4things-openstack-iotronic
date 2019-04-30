@@ -175,3 +175,26 @@ def registration(code, session):
 
 def board_on_join(session_id):
     LOG.debug('A board with %s joined', session_id['session'])
+
+
+def notify_result(board_uuid, wampmessage):
+    wmsg = wm.deserialize(wampmessage)
+    LOG.info('Board %s completed the its request %s with result: %s',
+             board_uuid, wmsg.req_id, wmsg.result)
+
+    res = objects.Result.get(ctxt, board_uuid, wmsg.req_id)
+    res.result = wmsg.result
+    res.message = wmsg.message
+    res.save()
+
+    filter = {"result": objects.result.RUNNING}
+
+    list_result = objects.Request.get_results(ctxt,
+                                              wmsg.req_id,
+                                              filter)
+    if len(list_result) == 0:
+        req = objects.Request.get_by_uuid(ctxt, wmsg.req_id)
+        req.status = objects.request.COMPLETED
+        req.save()
+
+    return wm.WampSuccess('notification_received').serialize()

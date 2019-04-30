@@ -709,3 +709,56 @@ class Connection(object):
 
         :param enabled_webservice_id: The id or uuid of a enabled_webservice.
         """
+
+    @abc.abstractmethod
+    def create_request(self, values):
+        """Create a new webservice.
+
+        :param values: A dict containing several items used to identify
+                       and track the request
+        :returns: A request.
+        """
+
+    @abc.abstractmethod
+    def create_result(self, values):
+        """Create a new webservice.
+
+        :param values: A dict containing several items used to identify
+                       and track the result
+        :returns: A result.
+        """
+
+    @abc.abstractmethod
+    def get_result(self, board_uuid, request_uuid):
+        """get a result.
+
+        :param board_uuid: the board uuid result.
+        :param request_uuid: the request_uuid.
+        :returns: A result.
+        """
+
+    @abc.abstractmethod
+    def update_result(self, result_id, values):
+        """Update properties of a result.
+
+        :param result_id: The id or uuid of a fleet.
+        :param values: Dict of values to update.
+        :returns: A result.
+        """
+
+    @abc.abstractmethod
+    def update_request(self, request_id, values):
+        """Update properties of a result.
+
+        :param request_id: The id or uuid of a fleet.
+        :param values: Dict of values to update.
+        :returns: A request.
+        """
+
+    @abc.abstractmethod
+    def get_results(self, request_uuid):
+        """get results of a request.
+
+        :param request_uuid: the request_uuid.
+        :returns: a list of results
+        """
