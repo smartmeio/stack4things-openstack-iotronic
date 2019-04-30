@@ -254,7 +254,7 @@ class ConductorEndpoint(object):
 
         try:
             result = self.execute_on_board(ctx, board_uuid, action,
-                                           (params))
+                                           (params,))
         except exception:
             return exception
 
