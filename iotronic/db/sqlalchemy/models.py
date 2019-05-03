@@ -314,3 +314,35 @@ class EnabledWebservice(Base):
     dns = Column(String(100))
     zone = Column(String(100))
     extra = Column(JSONEncodedDict)
+
+
+class Request(Base):
+    """Represents a request."""
+
+    __tablename__ = 'requests'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_requests0uuid'),
+
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+
+    destination_uuid = Column(String(36))
+    status = Column(String(10))
+    type = Column(Integer)
+    action = Column(String(15))
+
+
+class Result(Base):
+    """Represents a result."""
+
+    __tablename__ = 'results'
+    __table_args__ = (
+        schema.UniqueConstraint('board_uuid', 'request_uuid',
+                                name='uniq_request_on_board'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    board_uuid = Column(String(36))
+    request_uuid = Column(String(36))
+    result = Column(String(10))
+    message = Column(TEXT)

@@ -95,8 +95,19 @@ connected = False
 
 
 async def wamp_request(kwarg):
-    LOG.debug("calling: " + kwarg['wamp_rpc_call'])
-    d = await wamp_session_caller.call(kwarg['wamp_rpc_call'], *kwarg['data'])
+    # for previous LR version (to be removed asap)
+    if 'req_uuid' in kwarg:
+
+        LOG.debug("calling: " + kwarg['wamp_rpc_call'] +
+                  " with request id: " + kwarg['req_uuid'])
+        d = await wamp_session_caller.call(kwarg['wamp_rpc_call'],
+                                           kwarg['req_uuid'],
+                                           *kwarg['data'])
+    else:
+        LOG.debug("calling: " + kwarg['wamp_rpc_call'])
+        d = await wamp_session_caller.call(kwarg['wamp_rpc_call'],
+                                           *kwarg['data'])
+
     return d
 
 
@@ -234,6 +245,8 @@ class WampManager(object):
                                  AGENT_HOST + u'.stack4things.alive')
                 session.register(fun.wamp_alive,
                                  AGENT_HOST + u'.stack4things.wamp_alive')
+                session.register(fun.notify_result,
+                                 AGENT_HOST + u'.stack4things.notify_result')
                 LOG.debug("procedure registered")
 
             except Exception as e:
