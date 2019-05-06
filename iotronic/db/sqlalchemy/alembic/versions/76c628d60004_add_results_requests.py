@@ -28,7 +28,7 @@ def upgrade():
                               nullable=False),
                     sa.Column('status', sa.String(length=10), nullable=False),
                     sa.Column('type', sa.Integer(), nullable=False),
-                    sa.Column('action', sa.String(length=15), nullable=False),
+                    sa.Column('action', sa.String(length=20), nullable=False),
                     sa.PrimaryKeyConstraint('id'),
                     sa.UniqueConstraint('uuid', name='uniq_requests0uuid')
                     )

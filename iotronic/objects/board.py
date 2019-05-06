@@ -24,7 +24,7 @@ from iotronic.objects import utils as obj_utils
 
 ACTIONS = ['DevicePing', 'DeviceReboot', 'DeviceRestartLR',
            'DeviceNetConfig', 'DeviceEcho', 'DeviceUpgradeLR',
-           'DevicePackageAction']
+           'DevicePkgOperation']
 
 
 def is_valid_action(action):

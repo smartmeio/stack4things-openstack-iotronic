@@ -330,7 +330,7 @@ class Request(Base):
     destination_uuid = Column(String(36))
     status = Column(String(10))
     type = Column(Integer)
-    action = Column(String(15))
+    action = Column(String(20))
 
 
 class Result(Base):
