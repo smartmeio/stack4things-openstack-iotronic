@@ -96,12 +96,12 @@ connected = False
 
 async def wamp_request(kwarg):
     # for previous LR version (to be removed asap)
-    if 'req_uuid' in kwarg:
+    if 'req' in kwarg:
 
         LOG.debug("calling: " + kwarg['wamp_rpc_call'] +
-                  " with request id: " + kwarg['req_uuid'])
+                  " with request id: " + kwarg['req']['uuid'])
         d = await wamp_session_caller.call(kwarg['wamp_rpc_call'],
-                                           kwarg['req_uuid'],
+                                           kwarg['req'],
                                            *kwarg['data'])
     else:
         LOG.debug("calling: " + kwarg['wamp_rpc_call'])

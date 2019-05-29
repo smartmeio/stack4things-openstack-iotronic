@@ -62,40 +62,41 @@ class Result(base.IotronicObject):
         return result
 
     @base.remotable_classmethod
-    def get_results_list(cls, context, request_uuid, filters=None):
+    def get_results_list(cls, context, filters=None):
         """Find a result based on name and return a Board object.
 
         :param board_uuid: the board uuid result.
         :param request_uuid: the request_uuid.
         :returns: a :class:`result` object.
         """
-        db_requests = cls.dbapi.get_results(request_uuid,
-                                            filters=filters)
+        db_requests = cls.dbapi.get_result_list(
+            filters=filters)
         return [Result._from_db_object(cls(context), obj)
                 for obj in db_requests]
 
-    # @base.remotable_classmethod
-    # def list(cls, context, limit=None, marker=None, sort_key=None,
-    #          sort_dir=None, filters=None):
-    #     """Return a list of Result objects.
-    #
-    #     :param context: Security context.
-    #     :param limit: maximum number of resources to return in a
-    #                   single result.
-    #     :param marker: pagination marker for large data sets.
-    #     :param sort_key: column to sort results by.
-    #     :param sort_dir: direction to sort. "asc" or "desc".
-    #     :param filters: Filters to apply.
-    #     :returns: a list of :class:`Result` object.
-    #
-    #     """
-    #     db_results = cls.dbapi.get_result_list(filters=filters,
-    #                                          limit=limit,
-    #                                          marker=marker,
-    #                                          sort_key=sort_key,
-    #                                          sort_dir=sort_dir)
-    #     return [Result._from_db_object(cls(context), obj)
-    #             for obj in db_results]
+    @base.remotable_classmethod
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None, filters=None):
+        """Return a list of Result objects.
+
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a
+                      single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param filters: Filters to apply.
+        :returns: a list of :class:`Result` object.
+
+        """
+
+        db_results = cls.dbapi.get_result_list(filters=filters,
+                                               limit=limit,
+                                               marker=marker,
+                                               sort_key=sort_key,
+                                               sort_dir=sort_dir)
+        return [Result._from_db_object(cls(context), obj)
+                for obj in db_results]
 
     @base.remotable
     def create(self, context=None):

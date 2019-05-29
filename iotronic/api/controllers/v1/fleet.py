@@ -167,6 +167,7 @@ class FleetsController(rest.RestController):
 
     def _get_fleets_collection(self, marker, limit,
                                sort_key, sort_dir,
+                               project=None,
                                fields=None):
 
         limit = api_utils.validate_limit(limit)
@@ -183,6 +184,10 @@ class FleetsController(rest.RestController):
                  "sorting") % {'key': sort_key})
 
         filters = {}
+
+        if project:
+            if pecan.request.context.is_admin:
+                filters['project_id'] = project
         fleets = objects.Fleet.list(pecan.request.context, limit,
                                     marker_obj,
                                     sort_key=sort_key, sort_dir=sort_dir,
@@ -205,7 +210,7 @@ class FleetsController(rest.RestController):
 
         rpc_fleet = api_utils.get_rpc_fleet(fleet_ident)
         cdict = pecan.request.context.to_policy_values()
-        cdict['project'] = rpc_fleet.project
+        cdict['project_id'] = rpc_fleet.project
         policy.authorize('iot:fleet:get_one', cdict, cdict)
 
         return Fleet.convert_with_links(rpc_fleet, fields=fields)
@@ -237,6 +242,7 @@ class FleetsController(rest.RestController):
             fields = _DEFAULT_RETURN_FIELDS
         return self._get_fleets_collection(marker,
                                            limit, sort_key, sort_dir,
+                                           project=cdict['project_id'],
                                            fields=fields)
 
     @expose.expose(Fleet, body=Fleet, status_code=201)

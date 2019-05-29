@@ -21,18 +21,21 @@ except Exception:
     # allow iotronic api to run also with python2.7
     import pickle as cpickle
 
+import random
+import socket
+
+
+from oslo_config import cfg
+from oslo_log import log as logging
+import oslo_messaging
+
+from iotronic import objects
 from iotronic.common import exception, designate
 from iotronic.common import neutron
 from iotronic.common import states
 from iotronic.conductor.provisioner import Provisioner
-from iotronic import objects
 from iotronic.objects import base as objects_base
 from iotronic.wamp import wampmessage as wm
-from oslo_config import cfg
-from oslo_log import log as logging
-import oslo_messaging
-import random
-import socket
 
 LOG = logging.getLogger(__name__)
 
@@ -41,11 +44,13 @@ serializer = objects_base.IotronicObjectSerializer()
 Port = list()
 
 
-# Method to compare two versions.
-# Return 1 if v2 is smaller,
-# -1 if v1 is smaller,
-# 0 if equal
 def versionCompare(v1, v2):
+    """Method to compare two versions.
+    Return 1 if v2 is smaller,
+    -1 if v1 is smaller,
+    0 if equal
+    """
+
     v1_list = v1.split(".")[:3]
     v2_list = v2.split(".")[:3]
     i = 0
@@ -60,6 +65,35 @@ def versionCompare(v1, v2):
         i += 1
     # v2 == v1
     return 0
+
+
+def new_req(ctx, board, type, action, main_req=None, pending_requests=0):
+    req_data = {
+        'destination_uuid': board.uuid,
+        'type': type,
+        'status': objects.request.PENDING,
+        'action': action,
+        'project': board.project,
+        'pending_requests': pending_requests
+    }
+    if main_req:
+        req_data['main_request_uuid'] = main_req
+    req = objects.Request(ctx, **req_data)
+    req.create()
+    return req
+
+
+def new_res(ctx, board, req_uuid):
+    res_data = {
+        'board_uuid': board.uuid,
+        'request_uuid': req_uuid,
+        'result': objects.result.RUNNING,
+        'message': ""
+    }
+
+    res = objects.Result(ctx, **res_data)
+    res.create()
+    return res
 
 
 def get_best_agent(ctx):
@@ -238,9 +272,10 @@ class ConductorEndpoint(object):
 
         return serializer.serialize_entity(ctx, new_board)
 
-    def execute_on_board(self, ctx, board_uuid, wamp_rpc_call, wamp_rpc_args):
-        LOG.debug('Executing \"%s\" on the board: %s',
-                  wamp_rpc_call, board_uuid)
+    def execute_on_board(self, ctx, board_uuid, wamp_rpc_call, wamp_rpc_args,
+                         main_req=None):
+        LOG.debug('Executing \"%s\" on the board: %s (req %s)',
+                  wamp_rpc_call, board_uuid, main_req)
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
         # session should be taken from board, not from the object
@@ -250,28 +285,12 @@ class ConductorEndpoint(object):
                          session.session_id + "." + \
                          board.uuid + "." + wamp_rpc_call
 
-        # check the session; it rise an excpetion if session miss
         if not board.is_online():
             raise exception.BoardNotConnected(board=board.uuid)
 
-        req_data = {
-            'destination_uuid': board_uuid,
-            'type': objects.request.BOARD,
-            'status': objects.request.PENDING,
-            'action': wamp_rpc_call
-        }
-        req = objects.Request(ctx, **req_data)
-        req.create()
-
-        res_data = {
-            'board_uuid': board_uuid,
-            'request_uuid': req.uuid,
-            'result': objects.result.RUNNING,
-            'message': ""
-        }
-
-        res = objects.Result(ctx, **res_data)
-        res.create()
+        req = new_req(ctx, board, objects.request.BOARD, wamp_rpc_call,
+                      main_req)
+        res = new_res(ctx, board, req.uuid)
 
         cctx = self.wamp_agent_client.prepare(server=board.agent)
 
@@ -285,7 +304,7 @@ class ConductorEndpoint(object):
 
             response = cctx.call(ctx, 's4t_invoke_wamp',
                                  wamp_rpc_call=full_wamp_call,
-                                 req_uuid=req.uuid,
+                                 req=req,
                                  data=wamp_rpc_args)
 
         response = wm.deserialize(response)
@@ -296,6 +315,13 @@ class ConductorEndpoint(object):
             res.save()
             req.status = objects.request.COMPLETED
             req.save()
+
+            if req.main_request_uuid:
+                mreq = objects.Request.get_by_uuid(ctx, req.main_request_uuid)
+                mreq.pending_requests = mreq.pending_requests - 1
+                if mreq.pending_requests == 0:
+                    mreq.status = objects.request.COMPLETED
+                mreq.save()
 
         return response
 
@@ -514,6 +540,8 @@ class ConductorEndpoint(object):
                  board_uuid)
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
         port_iotronic = objects.Port(ctx)
 
         subnet_info = neutron.subnet_info(subnet_uuid)
@@ -641,14 +669,16 @@ class ConductorEndpoint(object):
         LOG.debug('Creating webservice %s',
                   newwbs.name)
 
+        board = objects.Board.get_by_uuid(ctx, newwbs.board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
         en_webservice = objects.enabledwebservice. \
             EnabledWebservice.get_by_board_uuid(ctx,
                                                 newwbs.board_uuid)
 
         full_zone_domain = en_webservice.dns + "." + en_webservice.zone
         dns_domain = newwbs.name + "." + full_zone_domain
-
-        board = objects.Board.get_by_uuid(ctx, newwbs.board_uuid)
 
         create_record_dns_webservice(ctx, board, newwbs.name,
                                      en_webservice.dns,
@@ -691,7 +721,12 @@ class ConductorEndpoint(object):
     def destroy_webservice(self, ctx, webservice_id):
         LOG.info('Destroying webservice with id %s',
                  webservice_id)
+
         wbsrv = objects.Webservice.get_by_uuid(ctx, webservice_id)
+
+        board = objects.Board.get_by_uuid(ctx, wbsrv.board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
 
         en_webservice = objects.enabledwebservice. \
             EnabledWebservice.get_by_board_uuid(ctx,
@@ -721,7 +756,6 @@ class ConductorEndpoint(object):
         except exception:
             return exception
 
-        board = objects.Board.get_by_uuid(ctx, wbsrv.board_uuid)
         if board.agent == None:
             raise exception.BoardInvalidStatus(uuid=board.uuid,
                                                status=board.status)
@@ -739,9 +773,15 @@ class ConductorEndpoint(object):
     def enable_webservice(self, ctx, dns, zone, email, board_uuid):
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
         if board.agent == None:
             raise exception.BoardInvalidStatus(uuid=board.uuid,
                                                status=board.status)
+
+        mreq = new_req(ctx, board, objects.request.BOARD,
+                       "enable_webservice", pending_requests=3)
 
         try:
             create_record_dns(ctx, board, dns, zone)
@@ -784,7 +824,7 @@ class ConductorEndpoint(object):
         service = objects.Service.get_by_name(ctx, 'webservice')
 
         res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
-                                    (service, http_port))
+                                    (service, http_port,), main_req=mreq.uuid)
         result = manage_result(res, "ServiceEnable", board.uuid)
 
         exp_data = {
@@ -800,7 +840,7 @@ class ConductorEndpoint(object):
         service = objects.Service.get_by_name(ctx, 'webservice_ssl')
 
         res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
-                                    (service, https_port))
+                                    (service, https_port,), main_req=mreq.uuid)
         result = manage_result(res, "ServiceEnable", board.uuid)
 
         exp_data = {
@@ -822,11 +862,11 @@ class ConductorEndpoint(object):
                   board.uuid, dns, email)
 
         try:
-            # result =
             self.execute_on_board(ctx,
                                   board.uuid,
                                   'EnableWebService',
-                                  (dns + "." + zone, email,))
+                                  (dns + "." + zone, email,),
+                                  main_req=mreq.uuid)
         except exception:
             return exception
 
@@ -840,10 +880,15 @@ class ConductorEndpoint(object):
                  board_uuid)
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
 
         if board.agent == None:
             raise exception.BoardInvalidStatus(uuid=board.uuid,
                                                status=board.status)
+
+        mreq = new_req(ctx, board, objects.request.BOARD,
+                       "disable_webservice", pending_requests=3)
 
         en_webservice = objects.enabledwebservice. \
             EnabledWebservice.get_by_board_uuid(ctx,
@@ -862,7 +907,7 @@ class ConductorEndpoint(object):
                                              service.uuid)
 
         res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
-                                    (service,))
+                                    (service,), main_req=mreq.uuid)
         LOG.debug(res.message)
         exposed.destroy()
 
@@ -872,9 +917,18 @@ class ConductorEndpoint(object):
                                              board_uuid,
                                              service.uuid)
         res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
-                                    (service,))
+                                    (service,), main_req=mreq.uuid)
         LOG.debug(res.message)
         exposed.destroy()
+
+        try:
+            self.execute_on_board(ctx,
+                                  board.uuid,
+                                  'DisableWebService',
+                                  (),
+                                  main_req=mreq.uuid)
+        except exception:
+            return exception
 
         webservice = objects.EnabledWebservice.get_by_board_uuid(
             ctx, board_uuid)

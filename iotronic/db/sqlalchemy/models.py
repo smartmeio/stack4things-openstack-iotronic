@@ -14,20 +14,20 @@
 """
 SQLAlchemy models for iot data.
 """
-
+from iotronic.common import paths
 import json
 
 from oslo_config import cfg
 from oslo_db.sqlalchemy import models
-import six.moves.urllib.parse as urlparse
 from sqlalchemy import Boolean
 from sqlalchemy import Column
-from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema
 from sqlalchemy import String
 from sqlalchemy.types import TypeDecorator, TEXT
-from iotronic.common import paths
+import six.moves.urllib.parse as urlparse
+
 
 sql_opts = [
     cfg.StrOpt('mysql_engine',
@@ -326,8 +326,12 @@ class Request(Base):
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-
+    main_request_uuid = Column(String(36),
+                               ForeignKey('requests.uuid'),
+                               nullable=True)
     destination_uuid = Column(String(36))
+    pending_requests = Column(Integer, default=0)
+    project = Column(String(36))
     status = Column(String(10))
     type = Column(Integer)
     action = Column(String(20))

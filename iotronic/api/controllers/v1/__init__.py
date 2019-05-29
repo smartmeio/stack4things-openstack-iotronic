@@ -30,6 +30,7 @@ from iotronic.api.controllers.v1 import enabledwebservice
 from iotronic.api.controllers.v1 import fleet
 from iotronic.api.controllers.v1 import plugin
 from iotronic.api.controllers.v1 import port
+from iotronic.api.controllers.v1 import request
 from iotronic.api.controllers.v1 import service
 from iotronic.api.controllers.v1 import webservice
 
@@ -145,6 +146,14 @@ class V1(base.APIBase):
                                               bookmark=True)
                           ]
 
+        v1.requests = [link.Link.make_link('self', pecan.request.public_url,
+                                           'requests', ''),
+                       link.Link.make_link('bookmark',
+                                           pecan.request.public_url,
+                                           'requests', '',
+                                           bookmark=True)
+                       ]
+
         return v1
 
 
@@ -158,6 +167,7 @@ class Controller(rest.RestController):
     ports = port.PortsController()
     fleets = fleet.FleetsController()
     webservices = webservice.WebservicesController()
+    requests = request.RequestsController()
 
     @expose.expose(V1)
     def get(self):

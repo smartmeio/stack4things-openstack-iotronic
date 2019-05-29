@@ -26,11 +26,18 @@ def upgrade():
                     sa.Column('uuid', sa.String(length=36), nullable=False),
                     sa.Column('destination_uuid', sa.String(length=36),
                               nullable=False),
+                    sa.Column('main_request_uuid', sa.String(length=36),
+                              nullable=True),
+                    sa.Column('pending_requests', sa.Integer(), default=0,
+                              nullable=False),
+                    sa.Column('project', sa.String(length=36), nullable=True),
                     sa.Column('status', sa.String(length=10), nullable=False),
                     sa.Column('type', sa.Integer(), nullable=False),
                     sa.Column('action', sa.String(length=20), nullable=False),
                     sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('uuid', name='uniq_requests0uuid')
+                    sa.UniqueConstraint('uuid', name='uniq_requests0uuid'),
+                    sa.ForeignKeyConstraint(['main_request_uuid'],
+                                            ['requests.uuid'], )
                     )
 
     op.create_table('results',

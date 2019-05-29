@@ -209,6 +209,24 @@ enabledwebservice_policies = [
                        description='Retrieve a EnabledWebservice record'),
 ]
 
+request_policies = [
+    policy.RuleDefault('iot:request:get',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Request records'),
+    policy.RuleDefault('iot:request:get_one',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Request record'),
+]
+
+result_policies = [
+    policy.RuleDefault('iot:result:get',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Request records'),
+    policy.RuleDefault('iot:result:get_one',
+                       'rule:is_admin or rule:is_iot_member',
+                       description='Retrieve Request record'),
+]
+
 
 def list_policies():
     policies = (default_policies
@@ -221,6 +239,8 @@ def list_policies():
                 + fleet_policies
                 + webservice_policies
                 + enabledwebservice_policies
+                + request_policies
+                + result_policies
                 )
     return policies
 

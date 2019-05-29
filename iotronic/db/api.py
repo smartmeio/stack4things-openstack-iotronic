@@ -738,6 +738,28 @@ class Connection(object):
         """
 
     @abc.abstractmethod
+    def get_result_list(self, filters=None, limit=None, marker=None,
+                        sort_key=None, sort_dir=None):
+        """Return a list of boards.
+
+        :param filters: Filters to apply. Defaults to None.
+
+                        :associated: True | False
+                        :reserved: True | False
+                        :maintenance: True | False
+                        :provision_state: provision state of board
+                        :provisioned_before:
+                            boards with provision_updated_at field before this
+                            interval in seconds
+        :param limit: Maximum number of boards to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
+
+    @abc.abstractmethod
     def update_result(self, result_id, values):
         """Update properties of a result.
 
@@ -755,10 +777,10 @@ class Connection(object):
         :returns: A request.
         """
 
-    @abc.abstractmethod
-    def get_results(self, request_uuid):
-        """get results of a request.
-
-        :param request_uuid: the request_uuid.
-        :returns: a list of results
-        """
+    # @abc.abstractmethod
+    # def get_results(self, request_uuid):
+    #     """get results of a request.
+    #
+    #     :param request_uuid: the request_uuid.
+    #     :returns: a list of results
+    #     """

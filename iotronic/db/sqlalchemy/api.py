@@ -196,8 +196,18 @@ class Connection(api.Connection):
         if filters is None:
             filters = []
 
-        if 'project' in filters:
-            query = query.filter(models.Fleet.project == filters['project'])
+        if 'project_id' in filters:
+            query = query.filter(models.Fleet.project ==
+                                 filters['project_id'])
+        return query
+
+    def _add_requests_filters(self, query, filters):
+        if filters is None:
+            filters = []
+
+        if 'project_id' in filters:
+            query = query.filter(models.Request.project ==
+                                 filters['project_id'])
         return query
 
     def _add_wampagents_filters(self, query, filters):
@@ -227,11 +237,24 @@ class Connection(api.Connection):
                 filter(models.Port.board_uuid == filters['board_uuid'])
 
     def _add_result_filters(self, query, filters):
+
         if filters is None:
             filters = []
 
         if 'result' in filters:
             query = query.filter(models.Result.result == filters['result'])
+
+        if 'request_uuid' in filters:
+            query = query.filter(
+                or_(
+                    models.Request.main_request_uuid ==
+                    filters['request_uuid'],
+                    models.Request.uuid ==
+                    filters['request_uuid']
+                    )
+            )
+            query = query.filter(models.Request.uuid ==
+                                 models.Result.request_uuid)
 
         return query
 
@@ -1249,6 +1272,13 @@ class Connection(api.Connection):
             raise exception.InvalidParameterValue(err=msg)
         return self._do_update_request(request_id, values)
 
+    def get_request_list(self, filters=None, limit=None, marker=None,
+                         sort_key=None, sort_dir=None):
+        query = model_query(models.Request)
+        query = self._add_requests_filters(query, filters)
+        return _paginate_query(models.Request, limit, marker,
+                               sort_key, sort_dir, query)
+
     # RESULT
 
     def _do_update_result(self, update_id, values):
@@ -1281,11 +1311,18 @@ class Connection(api.Connection):
     def update_result(self, result_id, values):
         return self._do_update_result(result_id, values)
 
-    def get_results(self, request_uuid, filters=None):
-        query = model_query(models.Result).filter_by(
-            request_uuid=request_uuid)
+    def get_result_list(self, filters=None, limit=None, marker=None,
+                        sort_key=None, sort_dir=None):
+        query = model_query(models.Result)
         query = self._add_result_filters(query, filters)
-        try:
-            return query.all()
-        except NoResultFound:
-            raise exception.ResultNotFound()
+        return _paginate_query(models.Result, limit, marker,
+                               sort_key, sort_dir, query)
+
+    # def get_results(self, request_uuid, filters=None):
+    #     query = model_query(models.Result).filter_by(
+    #         request_uuid=request_uuid)
+    #     query = self._add_result_filters(query, filters)
+    #     try:
+    #         return query.all()
+    #     except NoResultFound:
+    #         raise exception.ResultNotFound()

@@ -187,14 +187,20 @@ def notify_result(board_uuid, wampmessage):
     res.message = wmsg.message
     res.save()
 
-    filter = {"result": objects.result.RUNNING}
+    filter = {"result": objects.result.RUNNING,
+              "request_uuid": wmsg.req_id}
 
-    list_result = objects.Request.get_results(ctxt,
-                                              wmsg.req_id,
-                                              filter)
+    list_result = objects.Result.get_results_list(ctxt,
+                                                  filter)
     if len(list_result) == 0:
         req = objects.Request.get_by_uuid(ctxt, wmsg.req_id)
         req.status = objects.request.COMPLETED
         req.save()
+        if req.main_request_uuid:
+            mreq = objects.Request.get_by_uuid(ctxt, req.main_request_uuid)
+            mreq.pending_requests = mreq.pending_requests - 1
+            if mreq.pending_requests == 0:
+                mreq.status = objects.request.COMPLETED
+            mreq.save()
 
     return wm.WampSuccess('notification_received').serialize()

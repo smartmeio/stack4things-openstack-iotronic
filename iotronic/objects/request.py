@@ -19,7 +19,6 @@ from oslo_utils import uuidutils
 from iotronic.common import exception
 from iotronic.db import api as db_api
 from iotronic.objects import base
-from iotronic.objects.result import Result
 from iotronic.objects import utils as obj_utils
 
 BOARD = 0
@@ -39,7 +38,10 @@ class Request(base.IotronicObject):
         'id': int,
         'uuid': obj_utils.str_or_none,
         'destination_uuid': obj_utils.str_or_none,
+        'main_request_uuid': obj_utils.str_or_none,
+        'pending_requests': int,
         'status': obj_utils.str_or_none,
+        'project': obj_utils.str_or_none,
         'type': int,
         'action': obj_utils.str_or_none,
     }
@@ -88,15 +90,15 @@ class Request(base.IotronicObject):
         request = Request._from_db_object(cls(context), db_request)
         return request
 
-    @base.remotable_classmethod
-    def get_results(cls, context, request_uuid, filters=None):
-        """Find a request based on uuid and return a Board object.
-
-        :param uuid: the uuid of a request.
-        :returns: a :class:`Board` object.
-        """
-        return Result.get_results_list(context,
-                                       request_uuid, filters)
+    # @base.remotable_classmethod
+    # def get_results(cls, context, filters=None):
+    #     """Find a request based on uuid and return a Board object.
+    #
+    #     :param uuid: the uuid of a request.
+    #     :returns: a :class:`Board` object.
+    #     """
+    #     return Result.get_results_list(context,
+    #                                    filters)
 
     # @base.remotable_classmethod
     # def get_results_request(cls,context,request_uuid):
@@ -115,28 +117,29 @@ class Request(base.IotronicObject):
     #     request = Request._from_db_object(cls(context), db_request)
     #     return request
 
-    # @base.remotable_classmethod
-    # def list(cls, context, limit=None, marker=None, sort_key=None,
-    #          sort_dir=None, filters=None):
-    #     """Return a list of Request objects.
-    #
-    #     :param context: Security context.
-    #     :param limit: maximum number of resources to return in a
-    #                   single result.
-    #     :param marker: pagination marker for large data sets.
-    #     :param sort_key: column to sort results by.
-    #     :param sort_dir: direction to sort. "asc" or "desc".
-    #     :param filters: Filters to apply.
-    #     :returns: a list of :class:`Request` object.
-    #
-    #     """
-    #     db_requests = cls.dbapi.get_request_list(filters=filters,
-    #                                          limit=limit,
-    #                                          marker=marker,
-    #                                          sort_key=sort_key,
-    #                                          sort_dir=sort_dir)
-    #     return [Request._from_db_object(cls(context), obj)
-    #             for obj in db_requests]
+    @base.remotable_classmethod
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None, filters=None):
+        """Return a list of Request objects.
+
+        :param context: Security context.
+        :param limit: maximum number of resources to return in a
+                      single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param filters: Filters to apply.
+        :returns: a list of :class:`Request` object.
+
+        """
+        db_requests = cls.dbapi.get_request_list(filters=filters,
+                                                 limit=limit,
+                                                 marker=marker,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+
+        return [Request._from_db_object(cls(context), obj)
+                for obj in db_requests]
 
     @base.remotable
     def create(self, context=None):
