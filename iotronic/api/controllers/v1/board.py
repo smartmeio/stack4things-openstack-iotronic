@@ -24,12 +24,11 @@ from iotronic.api import expose
 from iotronic.common import exception
 from iotronic.common import policy
 from iotronic import objects
+from oslo_log import log as logging
 import pecan
 from pecan import rest
 import wsme
 from wsme import types as wtypes
-
-from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
 
@@ -39,11 +38,14 @@ _DEFAULT_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session', 'type',
 _DEFAULT_WEBSERVICE_RETURN_FIELDS = ('name', 'uuid', 'port', 'board_uuid',
                                      'extra')
 
+cache_agent_ip = {}
+
 
 class Board(base.APIBase):
     """API representation of a board.
 
     """
+
     uuid = types.uuid
     code = wsme.wsattr(wtypes.text)
     status = wsme.wsattr(wtypes.text)
@@ -78,13 +80,16 @@ class Board(base.APIBase):
         if fields is not None:
             board.unset_fields_except(fields)
 
-        wagent = objects.WampAgent.get_by_hostname(pecan.request.context,
-                                                   board.agent)
-        wsurl = wagent.wsurl
-        board.wstun_ip = wsurl.split("//")[1].split(":")[0]
+        if (board.agent != None):
+            if board.agent not in cache_agent_ip:
+                wagent = objects.WampAgent.get_by_hostname(
+                    pecan.request.context,
+                    board.agent)
+                wurl = wagent.wsurl
+                cache_agent_ip[board.agent] = wurl.split("//")[1].split(":")[0]
 
-        # rel_name, url, resource, resource_args,
-        #              bookmark=False, type=wtypes.Unset
+            board.wstun_ip = cache_agent_ip[board.agent]
+
         board.links = [link.Link.make_link('self', url, 'boards',
                                            board_uuid),
                        link.Link.make_link('bookmark', url, 'boards',
@@ -837,6 +842,7 @@ class BoardsController(rest.RestController):
         :param Board: a Board within the request body.
         """
         context = pecan.request.context
+
         cdict = context.to_policy_values()
         policy.authorize('iot:board:create', cdict, cdict)
 
