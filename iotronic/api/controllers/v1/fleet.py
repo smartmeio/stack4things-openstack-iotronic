@@ -30,8 +30,9 @@ from wsme import types as wtypes
 _DEFAULT_RETURN_FIELDS = (
     'name', 'uuid', 'project', 'description', 'extra')
 
-_DEFAULT_BOARDS_RETURN_FIELDS = ('name', 'code', 'status', 'uuid', 'session',
-                                 'type', 'fleet')
+_DEFAULT_BOARDS_RETURN_FIELDS = ('name', 'code', 'status', 'uuid',
+                                 'session', 'type', 'fleet', 'lr_version',
+                                 'connectivity', 'agent', 'wstun_ip')
 
 
 class Fleet(base.APIBase):
