@@ -40,14 +40,13 @@ On the dbms create the iotronic db and configure the access for the user iotroni
 
 Add the user and the enpoints on Keystone::
 
-    source adminrc
     openstack service create iot --name Iotronic
     openstack user create --password-prompt iotronic
-    
     openstack role add --project service --user iotronic admin
-    openstack role add admin_iot_project
-    openstack role add manager_iot_project
-    openstack role add user_iot
+    openstack role create admin_iot_project
+    openstack role create manager_iot_project
+    openstack role create user_iot
+    openstack role add --project service --user iotronic admin_iot_project
 
     openstack endpoint create --region RegionOne iot public http://IP_IOTRONIC:8812
     openstack endpoint create --region RegionOne iot internal http://IP_IOTRONIC:8812
@@ -59,8 +58,91 @@ Configuring Iotronic Host
 
 Crossbar
 ^^^^^^^^^^^^^^^^^^^^^
-Install crossbar on the Iotronic host following the `official guide <http://crossbar.io/docs/Installation-on-Ubuntu-and-Debian/>`_
+Install crossbar on the Iotronic host::
 
+    apt install python-pip python3-pip libsnappy-dev libssl-dev libffi-dev python-dev
+    pip3 install python-snappy crossbar
+
+Configuration::
+
+    mkdir /etc/crossbar
+    nano /etc/crossbar/config.json
+
+**config.json**::
+
+    {
+       "version": 2,
+       "controller": {
+       },
+       "workers": [
+          {
+             "type": "router",
+             "realms": [
+                {
+                   "name": "s4t",
+                   "roles": [
+                      {
+                         "name": "anonymous",
+                         "permissions": [
+                            {
+                               "uri": "*",
+                               "allow": {
+                                    "publish": true,
+                                    "subscribe": true,
+                                    "call": true,
+                                    "register": true
+                                }
+                            }
+                         ]
+                      }
+                   ]
+                }
+             ],
+             "transports": [
+                {
+                    "type": "websocket",
+                    "endpoint": {
+                      "type": "tcp",
+                      "port": 8181
+                    },
+                    "debug":true,
+                    "options":{
+                      "enable_webstatus":true,
+                      "fail_by_drop": true,
+                      "open_handshake_timeout": 2500,
+                      "close_handshake_timeout": 1000,
+                      "auto_ping_interval": 10000,
+                      "auto_ping_timeout": 5000,
+                      "auto_ping_size": 4
+                    }
+                }
+             ]
+          }
+       ]
+    }
+
+Create a systemd service file /etc/systemd/system/crossbar.service::
+
+    nano /etc/systemd/system/crossbar.service
+
+**crossbar.service**::
+
+    [Unit]
+    Description=Crossbar.io
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=root
+    Group=root
+    StandardInput=null
+    StandardOutput=journal
+    StandardError=journal
+    ExecStart=/usr/local/bin/crossbar start --cbdir=/etc/crossbar/
+    ExecStop=/usr/local/bin/crossbar stop --cbdir=/etc/crossbar/
+    Restart=on-abort
+    [Install]
+    WantedBy=multi-user.target
 
 Iotronic Installation 
 ^^^^^^^^^^^^^^^^^^^^^
@@ -89,7 +171,7 @@ edit ``/etc/iotronic/iotronic.conf`` with the correct configuration::
 
 There is just one wamp-agent and it must be set as the registration agent::
  
-  register_agent = True
+    register_agent = True
 
 populate the database::
 
@@ -123,10 +205,12 @@ restart apache::
 
 Starting
 ^^^^^^^^^^^^^^^^^^^^^
-Start the service::
+On the wamp agent::
 
   systemctl enable iotronic-wamp-agent
   systemctl start iotronic-wamp-agent
+
+On the conductor::
 
   systemctl enable iotronic-conductor
   systemctl start iotronic-conductor
@@ -135,5 +219,5 @@ Start the service::
 Board Side 
 ----------------------
 
-Follow the `iotronic-lightning-rod README <https://github.com/openstack/iotronic-lightning-rod/blob/master/README.rst>`_
+Follow the `iotronic-lightning-rod README <https://opendev.org/x/iotronic-lightning-rod>`_
 
