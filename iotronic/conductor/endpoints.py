@@ -562,7 +562,6 @@ class ConductorEndpoint(object):
                     port_socat = random.randint(10000, 20000)
                 i += 1
 
-            global Port
             Port.insert(0, port_socat)
             r_tcp_port = str(port_socat)
 
