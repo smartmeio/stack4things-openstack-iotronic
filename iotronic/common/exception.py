@@ -616,6 +616,10 @@ class ServiceAlreadyExposed(Conflict):
     message = _("A Service with UUID %(uuid)s already exposed.")
 
 
+class NotEnoughPortForService(NotFound):
+    message = _("No ports available")
+
+
 class ExposedServiceNotFound(NotFound):
     message = _("ExposedService %(uuid)s could not be found.")
 

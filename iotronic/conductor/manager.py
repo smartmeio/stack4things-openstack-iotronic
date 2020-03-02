@@ -40,6 +40,12 @@ conductor_opts = [
                help='Maximum time (in seconds) since the last check-in '
                     'of a conductor. A conductor is considered inactive '
                     'when this time has been exceeded.'),
+    cfg.IntOpt('service_port_min',
+               default=50000,
+               help='Min value for genereting random ports for services'),
+    cfg.IntOpt('service_port_max',
+               default=60000,
+               help='Max value for genereting random ports for services'),
 ]
 
 CONF = cfg.CONF

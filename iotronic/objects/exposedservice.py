@@ -31,6 +31,14 @@ class ExposedService(base.IotronicObject):
         'public_port': int
     }
 
+    @base.remotable_classmethod
+    def get_all_ports(cls, context):
+        ls = cls.list(context)
+        ports = []
+        for x in ls:
+            ports.append(x.public_port)
+        return ports
+
     @staticmethod
     def _from_db_object(exposed_service, db_exposed_service):
         """Converts a database entity to a formal object."""
@@ -96,7 +104,7 @@ class ExposedService(base.IotronicObject):
         return exp_service
 
     @base.remotable_classmethod
-    def list(cls, context, board_uuid):
+    def list(cls, context, board_uuid=None):
         """Return a list of ExposedService objects.
 
         :param context: Security context.

@@ -911,9 +911,13 @@ class Connection(api.Connection):
                 raise exception.ExposedServiceNotFound()
 
     def get_exposed_service_list(self, board_uuid):
-        query = model_query(
-            models.ExposedService).filter_by(
-            board_uuid=board_uuid)
+        if board_uuid:
+            query = model_query(
+                models.ExposedService).filter_by(
+                board_uuid=board_uuid)
+        else:
+            query = model_query(
+                models.ExposedService)
         return query.all()
 
     def _do_update_exposed_service(self, service_id, values):

@@ -43,6 +43,8 @@ serializer = objects_base.IotronicObjectSerializer()
 
 Port = list()
 
+SERVICE_PORT_LIST = None
+
 
 def versionCompare(v1, v2):
     """Method to compare two versions.
@@ -104,8 +106,24 @@ def get_best_agent(ctx):
     return agent.hostname
 
 
-def random_public_port():
-    return random.randint(50001, 59999)
+def random_public_port(ctx=None):
+    global SERVICE_PORT_LIST
+    if not SERVICE_PORT_LIST:
+        # empty, create a cache list
+        min = cfg.CONF.conductor.service_port_min + 1
+        max = cfg.CONF.conductor.service_port_max - 1
+        LOG.debug('recreate service port list cache: min %i max %i', min, max)
+        full_list = (range(min, max))
+        exp_list = objects.ExposedService.get_all_ports(ctx)
+        SERVICE_PORT_LIST = list(set(full_list) - set(exp_list))
+
+    if len(SERVICE_PORT_LIST) == 0:
+        LOG.warning('No more ports available')
+        return None
+    else:
+        num = random.choice(SERVICE_PORT_LIST)
+        SERVICE_PORT_LIST.remove(num)
+    return num
 
 
 def manage_result(res, wamp_rpc_call, board_uuid):
@@ -477,6 +495,9 @@ class ConductorEndpoint(object):
             except Exception:
                 public_port = random_public_port()
 
+                if not public_port:
+                    return exception.NotEnoughPortForService()
+
                 res = self.execute_on_board(ctx, board_uuid, action,
                                             (service, public_port))
                 result = manage_result(res, action, board_uuid)
@@ -504,6 +525,11 @@ class ConductorEndpoint(object):
 
             result = manage_result(res, action, board_uuid)
             LOG.debug(res.message)
+            global SERVICE_PORT_LIST
+            try:
+                SERVICE_PORT_LIST.append(exposed.public_port)
+            except exception:
+                pass
             exposed.destroy()
             return result
 
@@ -799,9 +825,10 @@ class ConductorEndpoint(object):
 
         except Exception:
 
-            # TO BE CHANGED
             https_port = random_public_port()
             http_port = random_public_port()
+            if not https_port or not http_port:
+                return exception.NotEnoughPortForService()
 
             en_webservice = {
                 'board_uuid': board.uuid,
@@ -918,6 +945,11 @@ class ConductorEndpoint(object):
         res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
                                     (service,), main_req=mreq.uuid)
         LOG.debug(res.message)
+        global SERVICE_PORT_LIST
+        try:
+            SERVICE_PORT_LIST.append(exposed.public_port)
+        except exception:
+            pass
         exposed.destroy()
 
         try:
