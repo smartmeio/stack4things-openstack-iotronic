@@ -86,6 +86,11 @@ class ConductorManager(object):
 
         ragent = self.dbapi.get_registration_wampagent()
 
+        while not ragent:
+            LOG.warn("Cannot find a registration agent. Waiting for it...")
+            time.sleep(5)
+            ragent = self.dbapi.get_registration_wampagent()
+
         LOG.info("Found registration agent: %s on %s",
                  ragent.hostname, ragent.wsurl)
 

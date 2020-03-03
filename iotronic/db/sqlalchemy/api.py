@@ -585,7 +585,7 @@ class Connection(api.Connection):
                     .filter_by(ragent=True, online=True)
                     .one())
         except NoResultFound:
-            raise exception.WampRegistrationAgentNotFound()
+            return None
 
     def unregister_wampagent(self, hostname):
         session = get_session()
