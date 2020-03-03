@@ -234,7 +234,7 @@ def is_valid_board_name(name):
     :param: name: the board name to check.
     :returns: True if the name is valid, False otherwise.
     """
-    return utils.is_hostname_safe(name) and (not uuidutils.is_uuid_like(name))
+    return not uuidutils.is_uuid_like(name)
 
 
 def is_valid_name(name):
