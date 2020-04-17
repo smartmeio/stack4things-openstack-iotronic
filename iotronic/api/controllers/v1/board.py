@@ -63,6 +63,7 @@ class Board(base.APIBase):
     links = wsme.wsattr([link.Link], readonly=True)
     location = wsme.wsattr([loc.Location])
     extra = types.jsontype
+    config = types.jsontype
 
     def __init__(self, **kwargs):
         self.fields = []
@@ -119,6 +120,23 @@ class Board(base.APIBase):
         # is implemented
         # if fields is not None:
         #    api_utils.check_for_invalid_fields(fields, board_dict)
+
+        if board.config == {}:
+            ragent = objects.WampAgent.get_registration_agent(
+                pecan.request.context)
+            board.config = {
+                "iotronic": {
+                    "board": {
+                        "code": board.code
+                        },
+                    "wamp": {
+                        "registration-agent": {
+                            "url": ragent.wsurl,
+                            "realm": "s4t"
+                        }
+                    }
+                }
+            }
 
         return cls._convert_with_links(board,
                                        pecan.request.public_url,
