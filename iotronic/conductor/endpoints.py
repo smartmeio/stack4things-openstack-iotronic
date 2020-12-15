@@ -43,7 +43,7 @@ serializer = objects_base.IotronicObjectSerializer()
 
 Port = list()
 
-SERVICE_PORT_LIST = None
+SERVICE_PORT_LIST = []
 
 
 def versionCompare(v1, v2):

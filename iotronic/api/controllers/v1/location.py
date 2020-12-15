@@ -31,7 +31,7 @@ class Location(base.APIBase):
         fields = list(objects.Location.fields)
         for k in fields:
             # Skip fields we do not expose.
-            if k is not 'created_at':
+            if k != 'created_at':
                 if not hasattr(self, k):
                     continue
                 self.fields.append(k)
