@@ -23,6 +23,7 @@ except Exception:
 
 import random
 import socket
+import json
 
 
 from oslo_config import cfg
@@ -46,6 +47,7 @@ Port = list()
 SERVICE_PORT_LIST = []
 
 
+
 def versionCompare(v1, v2):
     """Method to compare two versions.
     Return 1 if v2 is smaller,
@@ -53,20 +55,25 @@ def versionCompare(v1, v2):
     0 if equal
     """
 
-    v1_list = v1.split(".")[:3]
-    v2_list = v2.split(".")[:3]
-    i = 0
-    while (i < len(v1_list)):
+    if "freedom" in v1:
+        return 1
+    
+    else:
 
-        # v2 > v1
-        if int(v2_list[i]) > int(v1_list[i]):
-            return -1
-        # v1 > v1
-        if int(v1_list[i]) > int(v2_list[i]):
-            return 1
-        i += 1
-    # v2 == v1
-    return 0
+        v1_list = v1.split(".")[:3]
+        v2_list = v2.split(".")[:3]
+        i = 0
+        while (i < len(v1_list)):
+
+            # v2 > v1
+            if int(v2_list[i]) > int(v1_list[i]):
+                return -1
+            # v1 > v1
+            if int(v1_list[i]) > int(v2_list[i]):
+                return 1
+            i += 1
+        # v2 == v1
+        return 0
 
 
 def new_req(ctx, board, type, action, main_req=None, pending_requests=0):
@@ -154,6 +161,7 @@ def create_record_dns_webservice(ctx, board, webs_name, board_dns, zone):
     LOG.debug('using  %s %s %s', webs_name + "." + board_dns,
               ip, zone)
 
+    # CHECK IF DNS EXISTS
     designate.create_record(webs_name + "." + board_dns, ip,
                             zone)
 
@@ -170,8 +178,8 @@ def create_record_dns(ctx, board, board_dns, zone):
     LOG.debug('using %s %s %s', board_dns,
               ip, zone)
 
-    designate.create_record(board_dns, ip,
-                            zone)
+    # CHECK IF DNS EXISTS
+    designate.create_record(board_dns, ip, zone)
 
     LOG.debug('Configure Web Proxy on WampAgent %s (%s) for board %s',
               board.agent, ip, board.uuid)
@@ -253,20 +261,34 @@ class ConductorEndpoint(object):
                  board_id)
         board = objects.Board.get_by_uuid(ctx, board_id)
         result = None
+        
         if board.is_online():
-            prov = Provisioner()
-            prov.conf_clean()
-            p = prov.get_config()
-            LOG.debug('sending this conf %s', p)
+
             try:
                 result = self.execute_on_board(ctx,
                                                board_id,
-                                               'destroyBoard',
-                                               (p,))
-
+                                               'DeviceFactoryReset',
+                                               ())
             except exception:
                 return exception
+
+        exposed_list = objects.ExposedService.get_by_board_uuid(ctx,
+                                                                board_id)
+
+        LOG.debug('starting the wamp client')
+        cctx = self.wamp_agent_client.prepare(server=board.agent)
+
+        LOG.debug('Service to remove from allowlist:')
+        LOG.debug(exposed_list)                                                        
+
+        for exposed in exposed_list:
+            LOG.debug(exposed.public_port)  
+            cctx.call(ctx, 'remove_from_allowlist',
+                            device=board_id,
+                            port=exposed.public_port)
+        
         board.destroy()
+
         if result:
             result = manage_result(result, 'destroyBoard', board_id)
             LOG.debug(result)
@@ -280,19 +302,26 @@ class ConductorEndpoint(object):
         return serializer.serialize_entity(ctx, board)
 
     def create_board(self, ctx, board_obj, location_obj):
-        new_board = serializer.deserialize_entity(ctx, board_obj)
-        LOG.debug('Creating board %s',
-                  new_board.name)
-        new_location = serializer.deserialize_entity(ctx, location_obj)
-        new_board.create()
-        new_location.board_id = new_board.id
-        new_location.create()
 
-        return serializer.serialize_entity(ctx, new_board)
+        new_board = serializer.deserialize_entity(ctx, board_obj)
+        LOG.debug('Creating board %s', new_board.name)
+
+        board_exists = objects.Board.exists_by_name(ctx, new_board.name)
+        #print(board_exists)
+
+        if board_exists:
+            raise exception.BoardNameAlreadyExists(name=new_board.name)
+        else:
+            new_location = serializer.deserialize_entity(ctx, location_obj)
+            new_board.create()
+            new_location.board_id = new_board.id
+            new_location.create()
+
+            return serializer.serialize_entity(ctx, new_board)
 
     def execute_on_board(self, ctx, board_uuid, wamp_rpc_call, wamp_rpc_args,
                          main_req=None):
-        LOG.debug('Executing \"%s\" on the board: %s (req %s)',
+        LOG.debug('Executing \"%s\" on the board: %s (main_req %s)',
                   wamp_rpc_call, board_uuid, main_req)
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
@@ -308,18 +337,20 @@ class ConductorEndpoint(object):
 
         req = new_req(ctx, board, objects.request.BOARD, wamp_rpc_call,
                       main_req)
+        LOG.info(" - exec_request: " + str(req.uuid))
+
         res = new_res(ctx, board, req.uuid)
 
         cctx = self.wamp_agent_client.prepare(server=board.agent)
 
         # for previous LR version (to be removed asap)
+
         if (versionCompare(board.lr_version, "0.4.9") == -1):
 
             response = cctx.call(ctx, 's4t_invoke_wamp',
                                  wamp_rpc_call=full_wamp_call,
                                  data=wamp_rpc_args)
         else:
-
             response = cctx.call(ctx, 's4t_invoke_wamp',
                                  wamp_rpc_call=full_wamp_call,
                                  req=req,
@@ -351,7 +382,7 @@ class ConductorEndpoint(object):
         board = objects.Board.get(ctx, board_uuid)
         if not board.is_online():
             raise exception.BoardNotConnected(board=board.uuid)
-
+        
         objects.board.is_valid_action(action)
 
         try:
@@ -484,6 +515,10 @@ class ConductorEndpoint(object):
         service = objects.Service.get(ctx, service_uuid)
         objects.service.is_valid_action(action)
 
+        board = objects.Board.get_by_uuid(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
         if action == "ServiceEnable":
             LOG.info('Enabling service with id %s into the board %s',
                      service_uuid, board_uuid)
@@ -493,10 +528,22 @@ class ConductorEndpoint(object):
                                            service_uuid)
                 return exception.ServiceAlreadyExposed(uuid=service_uuid)
             except Exception:
+
                 public_port = random_public_port()
 
                 if not public_port:
                     return exception.NotEnoughPortForService()
+
+                # Add into service allow list
+                #if cfg.CONF.conductor.service_allow_list:
+                #    addin_allowlist(board_uuid, public_port)
+                LOG.debug('starting the wamp client')
+                cctx = self.wamp_agent_client.prepare(server=board.agent)
+                cctx.call(ctx, 'addin_allowlist',
+                            device=board_uuid,
+                            port=public_port)
+
+
 
                 res = self.execute_on_board(ctx, board_uuid, action,
                                             (service, public_port))
@@ -531,6 +578,18 @@ class ConductorEndpoint(object):
             except exception:
                 pass
             exposed.destroy()
+
+
+            # Remove from service allow list
+            #if cfg.CONF.conductor.service_allow_list:
+                #remove_from_allowlist(board_uuid, exposed.public_port)
+            LOG.debug('starting the wamp client')
+            cctx = self.wamp_agent_client.prepare(server=board.agent)
+            cctx.call(ctx, 'remove_from_allowlist',
+                            device=board_uuid,
+                            port=exposed.public_port)
+
+
             return result
 
         elif action == "ServiceRestore":
@@ -558,6 +617,25 @@ class ConductorEndpoint(object):
                                   (service, exposed.public_port))
 
         return 0
+
+    def status_services_on_board(self, ctx, board_uuid):
+        LOG.info('Getting services status into devide %s',
+                 board_uuid)
+
+        action = "ServicesStatus"
+
+        board = objects.Board.get(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
+        try:
+            result = self.execute_on_board(ctx, board_uuid, action, ())
+        except exception:
+            return exception
+
+        result = manage_result(result, action, board_uuid)
+        LOG.debug(result)
+        return result
 
     def create_port_on_board(self, ctx, board_uuid, network_uuid,
                              subnet_uuid, security_groups=None):
@@ -691,57 +769,102 @@ class ConductorEndpoint(object):
 
     def create_webservice(self, ctx, webservice_obj):
         newwbs = serializer.deserialize_entity(ctx, webservice_obj)
-        LOG.debug('Creating webservice %s',
-                  newwbs.name)
+        LOG.debug('Creating webservice %s', newwbs.name)
 
         board = objects.Board.get_by_uuid(ctx, newwbs.board_uuid)
         if not board.is_online():
             raise exception.BoardNotConnected(board=board.uuid)
 
-        en_webservice = objects.enabledwebservice. \
-            EnabledWebservice.get_by_board_uuid(ctx,
-                                                newwbs.board_uuid)
+        LOG.info(" - expose "+str(newwbs.name)+" in " + str(board.name) + " ["+str(newwbs.board_uuid)+"]")
+        list_webs = objects.Webservice.list(
+            ctx, 
+            filters={'board_uuid': newwbs.board_uuid}
+        )
+        
+        dns_check=True
+        webs_found=None
 
-        full_zone_domain = en_webservice.dns + "." + en_webservice.zone
-        dns_domain = newwbs.name + "." + full_zone_domain
-
-        create_record_dns_webservice(ctx, board, newwbs.name,
-                                     en_webservice.dns,
-                                     en_webservice.zone)
-
-        LOG.debug('Creating webservice with full domain %s',
-                  dns_domain)
-
-        list_webs = objects.Webservice.list(ctx,
-                                            filters={
-                                                'board_uuid': newwbs.board_uuid
-                                            })
-        list_dns = full_zone_domain + ","
         for webs in list_webs:
-            dname = webs.name + "." + full_zone_domain + ","
-            list_dns = list_dns + dname
+            wboard = objects.Board.get(ctx, webs.board_uuid)
+            LOG.info(" --> " + str(webs.name) + ", " + str(wboard.name) + ", " + str(webs.board_uuid) + ", " + str(webs.port) )
+            if (str(newwbs.board_uuid) == str(webs.board_uuid)) and (newwbs.name == str(webs.name)):
+                dns_check = False
+                webs_found = webs
+                break
 
-        list_dns = list_dns + dns_domain
+        if dns_check:
 
-        try:
-            self.execute_on_board(ctx,
-                                  newwbs.board_uuid,
-                                  'ExposeWebservice',
-                                  (full_zone_domain,
-                                   dns_domain,
-                                   newwbs.port,
-                                   list_dns,))
-        except exception:
-            return exception
+            LOG.info("Webservice can be exposed!")
 
-        cctx = self.wamp_agent_client.prepare(server=board.agent)
-        cctx.call(ctx, 'add_redirect', board_dns=en_webservice.dns,
-                  zone=en_webservice.zone, dns=newwbs.name)
-        cctx.call(ctx, 'reload_proxy')
+            en_webservice = objects.enabledwebservice. \
+                EnabledWebservice.get_by_board_uuid(ctx,
+                                                    newwbs.board_uuid)
 
-        newwbs.create()
+            full_zone_domain = en_webservice.dns + "." + en_webservice.zone
+            dns_domain = newwbs.name + "." + full_zone_domain
 
-        return serializer.serialize_entity(ctx, newwbs)
+            create_record_dns_webservice(ctx, board, newwbs.name,
+                                        en_webservice.dns,
+                                        en_webservice.zone)
+
+            LOG.debug('Creating webservice with full domain %s',
+                    dns_domain)
+
+            list_dns = full_zone_domain + ","
+            for webs in list_webs:
+                dname = webs.name + "." + full_zone_domain + ","
+                list_dns = list_dns + dname
+
+            list_dns = list_dns + dns_domain
+
+            try:
+                res = self.execute_on_board(ctx,
+                                    newwbs.board_uuid,
+                                    'ExposeWebservice',
+                                    (full_zone_domain,
+                                    dns_domain,
+                                    newwbs.port,
+                                    list_dns,))
+            except exception:
+                return exception
+
+            cctx = self.wamp_agent_client.prepare(server=board.agent)
+            cctx.call(ctx, 'add_redirect', board_dns=en_webservice.dns,
+                    zone=en_webservice.zone, dns=newwbs.name)
+            cctx.call(ctx, 'reload_proxy')
+
+            newwbs.create()
+
+            result = manage_result(res, "ExposeWebservice", board.uuid)
+            LOG.info(result)
+            #return result
+
+            return serializer.serialize_entity(ctx, newwbs)
+
+        else:
+
+            mreq = new_req(ctx, board, objects.request.BOARD,
+                "expose_webservice", pending_requests=0)
+            LOG.info(" - request: " + str(mreq.uuid))
+
+            
+            
+            msg="Webservice already exposed for this device!"
+            w_msg = wm.WampWarning(msg, req_id=mreq.uuid)
+
+            res = new_res(ctx, board, mreq.uuid) 
+            res.result = w_msg.result
+            res.message = w_msg.message
+            res.save()
+
+            mreq.status = objects.request.COMPLETED
+            mreq.save()
+
+            result = manage_result(w_msg, "ExposeWebservice", board.uuid)
+
+            LOG.info(result)
+            #return result
+            return serializer.serialize_entity(ctx, webs_found)
 
     def destroy_webservice(self, ctx, webservice_id):
         LOG.info('Destroying webservice with id %s',
@@ -750,49 +873,53 @@ class ConductorEndpoint(object):
         wbsrv = objects.Webservice.get_by_uuid(ctx, webservice_id)
 
         board = objects.Board.get_by_uuid(ctx, wbsrv.board_uuid)
-        if not board.is_online():
-            raise exception.BoardNotConnected(board=board.uuid)
+
+        #if not board.is_online():
+        #    raise exception.BoardNotConnected(board=board.uuid)
 
         en_webservice = objects.enabledwebservice. \
             EnabledWebservice.get_by_board_uuid(ctx,
                                                 wbsrv.board_uuid)
 
-        full_zone_domain = en_webservice.dns + "." + en_webservice.zone
-        dns_domain = wbsrv.name + "." + full_zone_domain
+        if board.is_online():
 
-        list_webs = objects.Webservice.list(ctx,
-                                            filters={
-                                                'board_uuid': wbsrv.board_uuid
-                                            })
+            full_zone_domain = en_webservice.dns + "." + en_webservice.zone
+            dns_domain = wbsrv.name + "." + full_zone_domain
 
-        list_dns = full_zone_domain + ","
-        for webs in list_webs:
-            if webs.name != wbsrv.name:
-                dname = webs.name + "." + full_zone_domain + ","
-                list_dns = list_dns + dname
-        list_dns = list_dns[:-1]
+            list_webs = objects.Webservice.list(ctx,
+                                                filters={
+                                                    'board_uuid': wbsrv.board_uuid
+                                                })
 
-        try:
-            # result =
-            self.execute_on_board(ctx,
-                                  wbsrv.board_uuid,
-                                  'UnexposeWebservice',
-                                  (dns_domain, list_dns,))
-        except exception:
-            return exception
+            list_dns = full_zone_domain + ","
+            for webs in list_webs:
+                if webs.name != wbsrv.name:
+                    dname = webs.name + "." + full_zone_domain + ","
+                    list_dns = list_dns + dname
+            list_dns = list_dns[:-1]
 
-        if board.agent == None:
-            raise exception.BoardInvalidStatus(uuid=board.uuid,
-                                               status=board.status)
+            try:
+                # result =
+                self.execute_on_board(ctx,
+                                    wbsrv.board_uuid,
+                                    'UnexposeWebservice',
+                                    (dns_domain, list_dns,))
+            except exception:
+                return exception
 
-        cctx = self.wamp_agent_client.prepare(server=board.agent)
-        cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
-                  zone=en_webservice.zone, dns=wbsrv.name)
-        cctx.call(ctx, 'reload_proxy')
+            if board.agent == None:
+                raise exception.BoardInvalidStatus(uuid=board.uuid,
+                                                status=board.status)
+
+            cctx = self.wamp_agent_client.prepare(server=board.agent)
+            cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
+                    zone=en_webservice.zone, dns=wbsrv.name)
+            cctx.call(ctx, 'reload_proxy')
 
         wbsrv.destroy()
         designate.delete_record(wbsrv.name + "." + en_webservice.dns,
                                 en_webservice.zone)
+
         return
 
     def enable_webservice(self, ctx, dns, zone, email, board_uuid):
@@ -804,110 +931,195 @@ class ConductorEndpoint(object):
         if board.agent == None:
             raise exception.BoardInvalidStatus(uuid=board.uuid,
                                                status=board.status)
+        #print("DNS: " + str(dns))
 
-        mreq = new_req(ctx, board, objects.request.BOARD,
-                       "enable_webservice", pending_requests=3)
+        avl_webservice = objects.enabledwebservice.EnabledWebservice.checkDnsAvailable(ctx, dns)
+        #print("Available: " + str(avl_webservice))
 
-        try:
-            create_record_dns(ctx, board, dns, zone)
-        except exception:
-            return exception
+        LOG.info("Enabling Webservice module for device " + str(board.name) + " ["+board_uuid+"]")
 
-        try:
-            en_webservice = objects.enabledwebservice. \
-                EnabledWebservice.get_by_board_uuid(ctx,
-                                                    board.uuid)
+        if avl_webservice:
 
-            LOG.debug('Webservice data already exists for board %s',
-                      board.uuid)
-            https_port = en_webservice.https_port
-            http_port = en_webservice.http_port
+            en_webservice = objects.enabledwebservice.EnabledWebservice.isWebserviceEnabled(ctx, board.uuid)
 
-        except Exception:
+            if(en_webservice):
 
-            https_port = random_public_port()
-            http_port = random_public_port()
-            if not https_port or not http_port:
-                return exception.NotEnoughPortForService()
+                mreq = new_req(ctx, board, objects.request.BOARD,
+                    "enable_webservice", pending_requests=0)
+                LOG.info(" - request: " + str(mreq.uuid))
 
-            en_webservice = {
-                'board_uuid': board.uuid,
-                'http_port': http_port,
-                'https_port': https_port,
-                'dns': dns,
-                'zone': zone
-            }
-            en_webservice = objects.enabledwebservice.EnabledWebservice(
-                ctx, **en_webservice)
+                res = new_res(ctx, board, mreq.uuid) 
 
-            LOG.debug('Save webservice data %s for board %s', dns + "." + zone,
-                      board.uuid)
-            en_webservice.create()
+                en_webservice = objects.enabledwebservice.EnabledWebservice.get_by_board_uuid(ctx, board.uuid)
 
-        LOG.debug('Open ports on WampAgent %s for http and %s for https '
-                  'on board %s', http_port, https_port, board.uuid)
+                LOG.info("Webservice and dns already enabled for this device:")
+                full_zone_domain = en_webservice.dns + "." + en_webservice.zone
 
-        service = objects.Service.get_by_name(ctx, 'webservice')
+                LOG.info(" --> " + str(full_zone_domain))
 
-        res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
-                                    (service, http_port,), main_req=mreq.uuid)
-        result = manage_result(res, "ServiceEnable", board.uuid)
+                msg="Webservice and dns already enabled for this device!"
+                w_msg = wm.WampWarning(msg, req_id=mreq.uuid)
 
-        exp_data = {
-            'board_uuid': board_uuid,
-            'service_uuid': service.uuid,
-            'public_port': http_port,
-        }
-        exposed = objects.ExposedService(ctx, **exp_data)
-        exposed.create()
+                res.result = w_msg.result
+                res.message = w_msg.message
+                res.save()
 
-        LOG.debug(result)
+                mreq.status = objects.request.COMPLETED
+                mreq.save()
 
-        service = objects.Service.get_by_name(ctx, 'webservice_ssl')
+                result = manage_result(w_msg, "EnableWebservice", board.uuid)
 
-        res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
-                                    (service, https_port,), main_req=mreq.uuid)
-        result = manage_result(res, "ServiceEnable", board.uuid)
+                LOG.info(result)
 
-        exp_data = {
-            'board_uuid': board_uuid,
-            'service_uuid': service.uuid,
-            'public_port': https_port,
-        }
-        exposed = objects.ExposedService(ctx, **exp_data)
-        exposed.create()
+                raise exception.EnabledWebserviceAlreadyExists(enabled_webservice=full_zone_domain, req=mreq.uuid)
 
-        LOG.debug(result)
+                #return serializer.serialize_entity(ctx, en_webservice)
 
-        cctx = self.wamp_agent_client.prepare(server=board.agent)
-        cctx.call(ctx, 'enable_webservice', board=dns,
-                  https_port=https_port, http_port=http_port, zone=zone)
-        cctx.call(ctx, 'reload_proxy')
 
-        LOG.debug('Configure Web Proxy on Board %s with dns %s (email: %s) ',
-                  board.uuid, dns, email)
+            else:
+ 
+                mreq = new_req(ctx, board, objects.request.BOARD,
+                            "enable_webservice", pending_requests=3)
 
-        try:
-            self.execute_on_board(ctx,
-                                  board.uuid,
-                                  'EnableWebService',
-                                  (dns + "." + zone, email,),
-                                  main_req=mreq.uuid)
-        except exception:
-            return exception
+                try:
+                    create_record_dns(ctx, board, dns, zone)
+                except exception:
+                    return exception
 
-        cctx.call(ctx, 'add_redirect', board_dns=dns, zone=zone)
-        cctx.call(ctx, 'reload_proxy')
+                try:
+                    en_webservice = objects.enabledwebservice. \
+                        EnabledWebservice.get_by_board_uuid(ctx,
+                                                            board.uuid)
 
-        return serializer.serialize_entity(ctx, en_webservice)
+                    LOG.debug('Webservice data already exists for board %s',
+                            board.uuid)
+                    https_port = en_webservice.https_port
+                    http_port = en_webservice.http_port
+
+                except Exception:
+
+                    https_port = random_public_port()
+                    http_port = random_public_port()
+                    if not https_port or not http_port:
+                        return exception.NotEnoughPortForService()
+
+                    en_webservice = {
+                        'board_uuid': board.uuid,
+                        'http_port': http_port,
+                        'https_port': https_port,
+                        'dns': dns,
+                        'zone': zone
+                    }
+                    en_webservice = objects.enabledwebservice.EnabledWebservice(
+                        ctx, **en_webservice)
+
+                    LOG.debug('Save webservice data %s for board %s', dns + "." + zone,
+                            board.uuid)
+                    en_webservice.create()
+
+                LOG.debug('Open ports on WampAgent %s for http and %s for https '
+                        'on board %s', http_port, https_port, board.uuid)
+
+                service = objects.Service.get_by_name(ctx, 'webservice')
+
+
+                LOG.debug('starting the wamp client')
+                cctx = self.wamp_agent_client.prepare(server=board.agent)
+                cctx.call(ctx, 'addin_allowlist',
+                            device=board.uuid,
+                            port=http_port)
+                cctx.call(ctx, 'addin_allowlist',
+                            device=board.uuid,
+                            port=https_port)
+
+                res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
+                                            (service, http_port,), main_req=mreq.uuid)
+                result = manage_result(res, "ServiceEnable", board.uuid)
+
+                exp_data = {
+                    'board_uuid': board_uuid,
+                    'service_uuid': service.uuid,
+                    'public_port': http_port,
+                }
+                exposed = objects.ExposedService(ctx, **exp_data)
+                exposed.create()
+
+                LOG.debug(result)
+
+                service = objects.Service.get_by_name(ctx, 'webservice_ssl')
+
+
+
+
+
+                res = self.execute_on_board(ctx, board.uuid, "ServiceEnable",
+                                            (service, https_port,), main_req=mreq.uuid)
+                result = manage_result(res, "ServiceEnable", board.uuid)
+
+                exp_data = {
+                    'board_uuid': board_uuid,
+                    'service_uuid': service.uuid,
+                    'public_port': https_port,
+                }
+                exposed = objects.ExposedService(ctx, **exp_data)
+                exposed.create()
+
+                LOG.debug(result)
+
+                cctx = self.wamp_agent_client.prepare(server=board.agent)
+                cctx.call(ctx, 'enable_webservice', board=dns,
+                        https_port=https_port, http_port=http_port, zone=zone)
+                cctx.call(ctx, 'reload_proxy')
+
+                LOG.debug('Configure Web Proxy on Board %s with dns %s (email: %s) ',
+                        board.uuid, dns, email)
+
+                try:
+                    self.execute_on_board(ctx,
+                                        board.uuid,
+                                        'EnableWebService',
+                                        (dns + "." + zone, email,),
+                                        main_req=mreq.uuid)
+                except exception:
+                    return exception
+
+                cctx.call(ctx, 'add_redirect', board_dns=dns, zone=zone)
+                cctx.call(ctx, 'reload_proxy')
+
+                return serializer.serialize_entity(ctx, en_webservice)
+
+
+        else:
+            mreq = new_req(ctx, board, objects.request.BOARD,
+                "enable_webservice", pending_requests=0)
+            LOG.info(" - request: " + str(mreq.uuid))
+
+            res = new_res(ctx, board, mreq.uuid) 
+
+            msg="DNS already exists!"
+            w_msg = wm.WampWarning(msg, req_id=mreq.uuid)
+
+            res.result = w_msg.result
+            res.message = w_msg.message
+            res.save()
+
+            mreq.status = objects.request.COMPLETED
+            mreq.save()
+
+            result = manage_result(w_msg, "EnableWebservice", board.uuid)
+
+            LOG.info(" - result: " + str(result))
+            
+            raise exception.DnsWebserviceAlreadyExists(dns=dns, req=mreq.uuid)
 
     def disable_webservice(self, ctx, board_uuid):
         LOG.info('Disabling webservice on board id %s',
                  board_uuid)
 
         board = objects.Board.get_by_uuid(ctx, board_uuid)
-        if not board.is_online():
-            raise exception.BoardNotConnected(board=board.uuid)
+
+        #if not board.is_online():
+        #    raise exception.BoardNotConnected(board=board.uuid)
 
         if board.agent == None:
             raise exception.BoardInvalidStatus(uuid=board.uuid,
@@ -923,7 +1135,7 @@ class ConductorEndpoint(object):
         https_port = en_webservice.https_port
         http_port = en_webservice.http_port
 
-        LOG.debug('Disable Webservices ports  %s for http and %s for https '
+        LOG.debug('Disable Webservices ports %s for http and %s for https '
                   'on board %s', http_port, https_port, board.uuid)
 
         service = objects.Service.get_by_name(ctx, 'webservice')
@@ -932,9 +1144,11 @@ class ConductorEndpoint(object):
                                              board_uuid,
                                              service.uuid)
 
-        res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
+        if board.is_online():
+            res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
                                     (service,), main_req=mreq.uuid)
-        LOG.debug(res.message)
+            LOG.debug(res.message)
+
         exposed.destroy()
 
         service = objects.Service.get_by_name(ctx, 'webservice_ssl')
@@ -942,9 +1156,13 @@ class ConductorEndpoint(object):
         exposed = objects.ExposedService.get(ctx,
                                              board_uuid,
                                              service.uuid)
-        res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
+
+        if board.is_online():
+            res = self.execute_on_board(ctx, board.uuid, "ServiceDisable",
                                     (service,), main_req=mreq.uuid)
-        LOG.debug(res.message)
+            LOG.debug(res.message)
+
+
         global SERVICE_PORT_LIST
         try:
             SERVICE_PORT_LIST.append(exposed.public_port)
@@ -952,14 +1170,15 @@ class ConductorEndpoint(object):
             pass
         exposed.destroy()
 
-        try:
-            self.execute_on_board(ctx,
-                                  board.uuid,
-                                  'DisableWebService',
-                                  (),
-                                  main_req=mreq.uuid)
-        except exception:
-            return exception
+        if board.is_online():
+            try:
+                self.execute_on_board(ctx,
+                                    board.uuid,
+                                    'DisableWebService',
+                                    (),
+                                    main_req=mreq.uuid)
+            except exception:
+                return exception
 
         webservice = objects.EnabledWebservice.get_by_board_uuid(
             ctx, board_uuid)
@@ -969,13 +1188,73 @@ class ConductorEndpoint(object):
 
         designate.delete_record(webservice.dns, en_webservice.zone)
 
+        if board.is_online():
+            cctx = self.wamp_agent_client.prepare(server=board.agent)
+            cctx.call(ctx, 'disable_webservice', board=webservice.dns)
+
+            # cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
+            #          zone=en_webservice.zone)
+
+            cctx.call(ctx, 'reload_proxy')
+
+        
+        LOG.debug('starting the wamp client')
         cctx = self.wamp_agent_client.prepare(server=board.agent)
-        cctx.call(ctx, 'disable_webservice', board=webservice.dns)
+        cctx.call(ctx, 'remove_from_allowlist',
+                        device=board.uuid,
+                        port=http_port)
 
-        # cctx.call(ctx, 'remove_redirect', board_dns=en_webservice.dns,
-        #          zone=en_webservice.zone)
 
-        cctx.call(ctx, 'reload_proxy')
+        cctx.call(ctx, 'remove_from_allowlist',
+                        device=board.uuid,
+                        port=https_port)
 
         webservice.destroy()
+
         return
+
+    def renew_webservice(self, ctx, board_uuid):
+
+        board = objects.Board.get_by_uuid(ctx, board_uuid)
+        if not board.is_online():
+            raise exception.BoardNotConnected(board=board.uuid)
+
+        if board.agent == None:
+            raise exception.BoardInvalidStatus(uuid=board.uuid,
+                                               status=board.status)
+
+        LOG.info('Renewing certificates on device %s', board.uuid)
+
+        en_webservice = objects.enabledwebservice.EnabledWebservice.isWebserviceEnabled(ctx, board.uuid)
+
+        if(en_webservice):
+
+            mreq = new_req(ctx, board, objects.request.BOARD,
+                       "RenewWebservice", pending_requests=1)
+
+            res = self.execute_on_board(ctx, board.uuid, "RenewWebservice", (), main_req=mreq.uuid )
+            
+        else:
+
+            mreq = new_req(ctx, board, objects.request.BOARD,
+                       "RenewWebservice", pending_requests=0)
+            LOG.info(" - request: " + str(mreq.uuid))
+
+            msg="Webservice module not enabled for this device!"
+            w_msg = wm.WampWarning(msg, req_id=mreq.uuid)
+
+            res = new_res(ctx, board, mreq.uuid) 
+            res.result = w_msg.result
+            res.message = w_msg.message
+            res.save()
+
+            mreq.status = objects.request.COMPLETED
+            mreq.save()
+
+            raise exception.EnabledWebserviceNotFound(enabled_webservice=board.uuid)
+            
+
+        result = manage_result(res, "RenewWebservice", board.uuid)
+        LOG.info(" - " + str(result))
+
+        return serializer.serialize_entity(ctx, en_webservice)

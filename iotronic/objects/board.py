@@ -24,7 +24,7 @@ from iotronic.objects import utils as obj_utils
 
 ACTIONS = ['DevicePing', 'DeviceReboot', 'DeviceRestartLR',
            'DeviceNetConfig', 'DeviceEcho', 'DeviceUpgradeLR',
-           'DevicePkgOperation']
+           'DevicePkgOperation', 'DeviceRestSubmit']
 
 
 def is_valid_action(action):
@@ -131,6 +131,22 @@ class Board(base.IotronicObject):
         db_board = cls.dbapi.get_board_by_name(name)
         board = Board._from_db_object(cls(context), db_board)
         return board
+
+    @base.remotable_classmethod
+    def exists_by_name(cls, context, name):
+        """Find a board based on name and return a boolean.
+
+        :param name: the logical name of a board.
+        :returns: a boolean object.
+        """
+        res=False
+        try:
+            db_board = cls.dbapi.get_board_by_name(name)
+            res = True
+        except exception.BoardNotFound as E:
+            return res
+
+        return res
 
     @base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,

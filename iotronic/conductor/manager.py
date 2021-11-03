@@ -46,6 +46,7 @@ conductor_opts = [
     cfg.IntOpt('service_port_max',
                default=60000,
                help='Max value for genereting random ports for services'),
+
 ]
 
 CONF = cfg.CONF

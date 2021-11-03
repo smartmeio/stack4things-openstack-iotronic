@@ -89,6 +89,46 @@ class EnabledWebservice(base.IotronicObject):
         return en_webserv
 
     @base.remotable_classmethod
+    def isWebserviceEnabled(cls, context, uuid):
+        """Find a enabled_webservice based on uuid and return a Board object.
+
+        :param uuid: the uuid of a enabled_webservice.
+        :returns: a boolean object.
+        """
+        res=False
+        try:
+            db_enabled_webservice = cls.dbapi.get_enabled_webservice_by_board_uuid(
+                uuid)
+            res = True
+        except exception.EnabledWebserviceNotFound as E:
+            return res
+
+        return res
+
+    @base.remotable_classmethod
+    def checkDnsAvailable(cls, context, dns):
+        """Check if a dns is already assigned.
+
+        :param dns: dns chosen to enabled_webservice into a device.
+        :returns: a boolean object.
+        """
+        res=False
+        try:
+            db_enabled_webservice = cls.dbapi.get_enabled_webservice_by_name(
+                dns)
+            if db_enabled_webservice == False:
+                # OK dns approved
+                res = True
+            else:
+                res = False
+        except exception.EnabledWebserviceAlreadyExists as E:
+            return res
+
+        return res
+
+        
+
+    @base.remotable_classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
              sort_dir=None, filters=None):
         """Return a list of EnabledWebservice objects.

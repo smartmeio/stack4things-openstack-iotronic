@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import asyncio
+import json
 import subprocess
 import time
 import txaio
@@ -72,6 +73,12 @@ wamp_opts = [
     cfg.IntOpt('autoPingTimeout',
                default=2,
                help=('autoPingInterval parameter for wamp')),
+    cfg.BoolOpt('service_allow_list',
+            default=False,
+            help='Enable service allow list checks.'),
+    cfg.StrOpt('service_allow_list_path',
+            default="(/var/lib/wstun/allowlist)",
+            help='Path of allowlist.json file.'),
 
 ]
 
@@ -121,6 +128,20 @@ class WampEndpoint(object):
 
         return r.result()
 
+def read_allowlist():
+    try:
+
+        with open(CONF.wamp.service_allow_list_path, "r") as allow_file:
+
+            allow_list_str = allow_file.read()
+
+            allow_list = json.loads(allow_list_str)
+            #LOG.debug(allow_list)
+
+            return allow_list
+
+    except Exception as err:
+        LOG.error(err)
 
 class AgentEndpoint(object):
 
@@ -138,6 +159,54 @@ class AgentEndpoint(object):
                              ',up ', shell=True, stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT)
         return 1
+
+
+
+
+    def addin_allowlist(self, ctx, device, port):
+        try:
+
+            allow_list = read_allowlist()
+
+            new_node={}
+            new_node['client']=device
+            new_node['port']=str(port)
+
+            if new_node in allow_list:
+                LOG.warning("This device already exposes this port!")
+            else:
+                allow_list.append(new_node)
+                with open(CONF.wamp.service_allow_list_path, "r+") as allow_file:
+                    allow_file.seek(0)
+                    allow_file.write("%s" % json.dumps(allow_list))
+                    allow_file.truncate()
+
+                read_allowlist()
+                LOG.debug("Added device/service port in allow list.")
+        
+        except Exception as err:
+            print(err)
+
+
+    def remove_from_allowlist(self, ctx, device, port):
+        try:
+            allow_list = read_allowlist()
+
+            new_node={}
+            new_node['client']=device
+            new_node['port']=str(port)
+
+            if new_node in allow_list:
+                allow_list.remove(new_node)
+                with open(CONF.wamp.service_allow_list_path, "r+") as allow_file:
+                    allow_file.seek(0)
+                    allow_file.write("%s" % json.dumps(allow_list))
+                    allow_file.truncate()
+                    
+                LOG.debug("Removed device/service port from allow list.")
+
+        except Exception as err:
+            print(err)
 
 
 class RPCServer(Thread):

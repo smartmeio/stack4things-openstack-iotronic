@@ -416,7 +416,8 @@ class BoardPluginsController(rest.RestController):
 class BoardServicesController(rest.RestController):
     _custom_actions = {
         'action': ['POST'],
-        'restore': ['GET']
+        'restore': ['GET'],
+        'status': ['GET']
     }
 
     def __init__(self, board_ident):
@@ -462,6 +463,7 @@ class BoardServicesController(rest.RestController):
         except exception:
             return exception
 
+        # add here the check on force parameter
         rpc_board.check_if_online()
 
         result = pecan.request.rpcapi.action_service(pecan.request.context,
@@ -491,11 +493,33 @@ class BoardServicesController(rest.RestController):
 
         return self._get_services_on_board_collection(rpc_board.uuid)
 
+    @expose.expose(wtypes.text, status_code=200)
+    def status(self):
+        """Get status of all services in a board.
+
+        :param board_ident: UUID or logical name of a board.
+        """
+        # context = pecan.request.context
+        # cdict = context.to_policy_values()
+        # policy.authorize('iot:board:delete', cdict, cdict)
+
+        rpc_board = api_utils.get_rpc_board(self.board_ident)
+
+        rpc_board.check_if_online()
+
+        result = pecan.request.rpcapi.status_services_on_board(
+            pecan.request.context,                                    
+            rpc_board.uuid
+        )
+
+        return result
+
 
 class BoardWebservicesController(rest.RestController):
     _custom_actions = {
         'enable': ['POST'],
-        'disable': ['DELETE']
+        'disable': ['DELETE'],
+        'renew': ['GET']
     }
 
     invalid_sort_key_list = ['extra', ]
@@ -575,6 +599,7 @@ class BoardWebservicesController(rest.RestController):
 
         :param Webservice: a Webservice within the request body.
         """
+
         context = pecan.request.context
         cdict = context.to_policy_values()
         policy.authorize('iot:webservice:create', cdict, cdict)
@@ -650,6 +675,23 @@ class BoardWebservicesController(rest.RestController):
 
         rpc_board = api_utils.get_rpc_board(self.board_ident)
         pecan.request.rpcapi.disable_webservice(pecan.request.context,
+                                                rpc_board.uuid)
+
+    @expose.expose(None)
+    def renew(self):
+        """Renew webservices certificates in a board.
+
+        :param board_ident: UUID or logical name of a board.
+        """
+        # context = pecan.request.context
+        # cdict = context.to_policy_values()
+        # policy.authorize('iot:board:delete', cdict, cdict)
+
+        rpc_board = api_utils.get_rpc_board(self.board_ident)
+
+        rpc_board.check_if_online()
+
+        pecan.request.rpcapi.renew_webservice(pecan.request.context,
                                                 rpc_board.uuid)
 
 

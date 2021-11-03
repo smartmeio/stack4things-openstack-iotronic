@@ -260,6 +260,10 @@ class BoardAssociated(InvalidState):
     message = _("Board %(board)s is associated with instance %(instance)s.")
 
 
+class BoardNameAlreadyExists(Conflict):
+    message = _("A board with %(name)s is already associated to another board.")
+
+
 class PortNotFound(NotFound):
     message = _("Port %(port)s could not be found.")
 
@@ -665,8 +669,12 @@ class WebserviceAlreadyExists(Conflict):
 
 
 class EnabledWebserviceNotFound(NotFound):
-    message = _("No Webservice enabled for %(enabled_webservice)s.")
+    message = _("Webservice module not enabled for %(enabled_webservice)s device.")
 
 
 class EnabledWebserviceAlreadyExists(Conflict):
-    message = _("Already enabled for %(enabled_webservice)s.")
+    message = _("Already enabled for %(enabled_webservice)s [req: %(req)s].")
+
+
+class DnsWebserviceAlreadyExists(Conflict):
+    message = _("DNS %(dns)s already exists [req: %(req)s].")

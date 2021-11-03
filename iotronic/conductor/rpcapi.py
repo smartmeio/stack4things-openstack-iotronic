@@ -291,6 +291,20 @@ class ConductorAPI(object):
         return cctxt.call(context, 'restore_services_on_board',
                           board_uuid=board_uuid)
 
+
+    def status_services_on_board(self, context,
+                                  board_uuid, topic=None):
+        """Get status of all services' tunnel on a board.
+
+        :param context: request context.
+        :param board_uuid: board id or uuid.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'status_services_on_board',
+                          board_uuid=board_uuid)
+
+
     def create_port_on_board(self, context, board_uuid, network,
                              subnet, sec_groups, topic=None):
         """Add a port on a Board
@@ -408,4 +422,12 @@ class ConductorAPI(object):
         """
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
         return cctxt.call(context, 'disable_webservice',
+                          board_uuid=board_uuid)
+
+    def renew_webservice(self, context, board_uuid, topic=None):
+        """Renew webservice certificate.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.0')
+        return cctxt.call(context, 'renew_webservice',
                           board_uuid=board_uuid)

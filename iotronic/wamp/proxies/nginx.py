@@ -23,7 +23,10 @@ LOG = logging.getLogger(__name__)
 nginx_opts = [
     cfg.StrOpt('nginx_path',
                default='/etc/nginx/conf.d/iotronic',
-               help=('Default Nginx Path'))
+               help=('Default Nginx Path')),
+    cfg.StrOpt('wstun_endpoint',
+            default='localhost',
+            help=('Default Nginx Path'))
 ]
 
 CONF = cfg.CONF
@@ -39,9 +42,9 @@ def save_map(board, zone):
 def save_upstream(board, https_port):
     fp = CONF.nginx.nginx_path + "/upstreams/upstream_" + board
     string = '''upstream {0} {{
-    server localhost:{1} max_fails=3 fail_timeout=10s;
+    server {2}:{1} max_fails=3 fail_timeout=10s;
     }}
-    '''.format(board, https_port)
+    '''.format(board, https_port, CONF.nginx.wstun_endpoint )
 
     with open(fp, "w") as text_file:
         text_file.write("%s" % string)
@@ -54,10 +57,10 @@ def save_server(board, http_port, zone):
     server_name         .{0}.{2};
 
     location / {{
-        proxy_pass http://localhost:{1};
+        proxy_pass http://{3}:{1};
     }}
     }}
-    '''.format(board, http_port, zone)
+    '''.format(board, http_port, zone, CONF.nginx.wstun_endpoint)
 
     with open(fp, "w") as text_file:
         text_file.write("%s" % string)

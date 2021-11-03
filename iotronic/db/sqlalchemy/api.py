@@ -1175,6 +1175,15 @@ class Connection(api.Connection):
 
     # ENABLED_WEBSERIVCE api
 
+    def get_enabled_webservice_by_name(self, enabled_webservice_name):
+        query = model_query(models.EnabledWebservice).filter_by(
+            dns=enabled_webservice_name)
+        try:
+            return query.one()
+        except NoResultFound:
+            return False
+        #exception.EnabledWebserviceNotFound(enabled_webservice=enabled_webservice_name)
+
     def get_enabled_webservice_by_id(self, enabled_webservice_id):
         query = model_query(models.EnabledWebservice).filter_by(
             id=enabled_webservice_id)

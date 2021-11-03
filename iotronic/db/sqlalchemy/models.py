@@ -144,7 +144,7 @@ class Board(Base):
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
-    code = Column(String(25))
+    code = Column(String(36))
     status = Column(String(15), nullable=True)
     name = Column(String(255), nullable=True)
     type = Column(String(255))
@@ -169,7 +169,7 @@ class Location(Base):
     longitude = Column(String(18), nullable=True)
     latitude = Column(String(18), nullable=True)
     altitude = Column(String(18), nullable=True)
-    board_id = Column(Integer, ForeignKey('boards.id'))
+    board_id = Column(Integer, ForeignKey('boards.id', ondelete="CASCADE"))
 
 
 class SessionWP(Base):
@@ -185,7 +185,7 @@ class SessionWP(Base):
     valid = Column(Boolean, default=True)
     session_id = Column(String(20))
     board_uuid = Column(String(36))
-    board_id = Column(Integer, ForeignKey('boards.id'))
+    board_id = Column(Integer, ForeignKey('boards.id', ondelete="CASCADE"))
 
 
 class Plugin(Base):
@@ -213,7 +213,7 @@ class InjectionPlugin(Base):
     __table_args__ = (
         table_args())
     id = Column(Integer, primary_key=True)
-    board_uuid = Column(String(36), ForeignKey('boards.uuid'))
+    board_uuid = Column(String(36), ForeignKey('boards.uuid', ondelete="CASCADE"))
     plugin_uuid = Column(String(36), ForeignKey('plugins.uuid'))
     onboot = Column(Boolean, default=False)
     status = Column(String(15))
@@ -242,7 +242,7 @@ class ExposedService(Base):
     __table_args__ = (
         table_args())
     id = Column(Integer, primary_key=True)
-    board_uuid = Column(String(36), ForeignKey('boards.uuid'))
+    board_uuid = Column(String(36), ForeignKey('boards.uuid', ondelete="CASCADE"))
     service_uuid = Column(String(36), ForeignKey('services.uuid'))
     public_port = Column(Integer)
 
@@ -256,7 +256,7 @@ class Port(Base):
     #        table_args()
     #    )
     id = Column(Integer, primary_key=True)
-    board_uuid = Column(String(40), ForeignKey('boards.uuid'))
+    board_uuid = Column(String(40), ForeignKey('boards.uuid', ondelete="CASCADE"))
     uuid = Column(String(40))
     VIF_name = Column(String(30))
     #    project = Column(String(36))
@@ -298,7 +298,7 @@ class Webservice(Base):
     uuid = Column(String(36))
     port = Column(Integer)
     name = Column(String(45))
-    board_uuid = Column(String(36), ForeignKey('boards.uuid'), nullable=True)
+    board_uuid = Column(String(36), ForeignKey('boards.uuid', ondelete="CASCADE"), nullable=True)
     secure = Column(Boolean, default=True)
     extra = Column(JSONEncodedDict)
 
@@ -308,7 +308,7 @@ class EnabledWebservice(Base):
 
     __tablename__ = 'enabled_webservices'
     id = Column(Integer, primary_key=True)
-    board_uuid = Column(String(36), ForeignKey('boards.uuid'), nullable=True)
+    board_uuid = Column(String(36), ForeignKey('boards.uuid', ondelete="CASCADE"), nullable=True)
     http_port = Column(Integer)
     https_port = Column(Integer)
     dns = Column(String(100))
