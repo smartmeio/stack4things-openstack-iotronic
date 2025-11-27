@@ -3,7 +3,8 @@
 # process, which may cause wedges in the gate later.
 
 pbr!=2.1.0,>=2.0.0 # Apache-2.0
-eventlet!=0.18.3,!=0.20.1,>=0.18.2 # MIT
+cryptography==36.0.1
+eventlet==0.33.0
 oslo.cache==2.8.1
 oslo.concurrency==4.5.0
 oslo.config==8.7.1
